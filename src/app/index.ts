@@ -1,7 +1,8 @@
-const app: HTMLDivElement | null = document.querySelector<HTMLDivElement>('#app')!
+const app: HTMLDivElement | null =
+    document.querySelector<HTMLDivElement>('#app')!;
 
 if (app) {
-  app.innerHTML = `
+    app.innerHTML = `
     <h1>Welcome to Mini Games</h1>
-  `
+  `;
 }
