@@ -1,0 +1,302 @@
+@use '../../shared/styles/tokens' as tokens;
+
+.developer-cta {
+    min-height: 566px;
+    padding: 16px;
+    overflow: hidden;
+}
+
+.developer-cta__layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+}
+
+.developer-cta__illustration {
+    position: relative;
+    flex: 0 0 227px;
+    overflow: hidden;
+    border: 3px solid tokens.$color-border;
+    border-radius: 24px;
+    background-color: #5f9fa5;
+    box-shadow: 6px 6px 0 tokens.$color-border;
+}
+
+.developer-cta__illustration::before,
+.developer-cta__illustration::after {
+    position: absolute;
+    content: '';
+}
+
+.developer-cta__illustration::before {
+    top: 18%;
+    left: 8%;
+    width: 84%;
+    height: 62%;
+    border: 3px solid tokens.$color-border;
+    border-radius: 18px;
+    background-color: #f5e6c8;
+    box-shadow: 10px 10px 0 rgb(36 33 69 / 35%);
+    transform: rotate(-5deg);
+}
+
+.developer-cta__illustration::after {
+    right: 7%;
+    bottom: 9%;
+    width: 30%;
+    height: 23%;
+    border: 3px solid tokens.$color-border;
+    border-radius: 50%;
+    background-color: tokens.$color-primary;
+}
+
+.developer-cta__screen {
+    position: absolute;
+    z-index: 1;
+    top: 28%;
+    left: 18%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 58%;
+    height: 38%;
+    padding: 14px;
+    border: 3px solid tokens.$color-border;
+    border-radius: 10px;
+    background-color: tokens.$color-footer-background;
+    transform: rotate(-5deg);
+}
+
+.developer-cta__screen-bar {
+    display: block;
+    width: 72%;
+    height: 12px;
+    border-radius: 6px;
+    background-color: tokens.$color-primary;
+}
+
+.developer-cta__screen-bar:nth-child(2) {
+    width: 48%;
+    background-color: #ef786b;
+}
+
+.developer-cta__screen-bar:nth-child(3) {
+    width: 62%;
+    background-color: #8bd3c7;
+}
+
+.developer-cta__piece {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 3px solid tokens.$color-border;
+    border-radius: 10px;
+    color: tokens.$color-border;
+    font-size: 28px;
+    font-weight: tokens.$font-weight-bold;
+}
+
+.developer-cta__piece--yellow {
+    top: 8%;
+    right: 14%;
+    background-color: tokens.$color-primary;
+    transform: rotate(12deg);
+}
+
+.developer-cta__piece--coral {
+    bottom: 15%;
+    left: 12%;
+    background-color: #ef786b;
+    transform: rotate(-18deg);
+}
+
+.developer-cta__piece--blue {
+    right: 28%;
+    bottom: 8%;
+    border-radius: 50%;
+    background-color: #7899e8;
+}
+
+.developer-cta__piece--mint {
+    top: 14%;
+    left: 13%;
+    background-color: #8bd3c7;
+    transform: rotate(18deg);
+}
+
+.developer-cta__card {
+    display: flex;
+    flex: 0 0 291px;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 24px;
+    border: 3px solid tokens.$color-border;
+    border-radius: 24px;
+    background-color: tokens.$color-primary;
+    background-image: repeating-linear-gradient(
+        135deg,
+        transparent 0,
+        transparent 20px,
+        rgb(36 33 69 / 7%) 20px,
+        rgb(36 33 69 / 7%) 22px
+    );
+    box-shadow: 8px 8px 0 tokens.$color-border;
+}
+
+.developer-cta__title,
+.developer-cta__description,
+.developer-cta__contact {
+    margin: 0;
+}
+
+.developer-cta__title {
+    color: tokens.$color-text;
+    font-size: tokens.$font-size-xl;
+    font-weight: tokens.$font-weight-bold;
+    line-height: 1.2;
+}
+
+.developer-cta__description {
+    margin-top: 16px;
+    color: tokens.$color-text;
+    font-size: tokens.$font-size-xs;
+    font-weight: tokens.$font-weight-medium;
+    line-height: 1.4;
+}
+
+.developer-cta__button {
+    display: inline-flex;
+    align-items: center;
+    gap: tokens.$size-2;
+    min-height: 32px;
+    margin-top: 16px;
+    padding: 8px 16px;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-xs;
+    font-weight: tokens.$font-weight-bold;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.developer-cta__button:hover {
+    background-color: tokens.$color-background;
+}
+
+.developer-cta__button:active {
+    background-color: tokens.$color-primary-active;
+    transform: translateY(1px);
+}
+
+.developer-cta__button:focus-visible {
+    outline: 2px solid tokens.$color-border;
+    outline-offset: tokens.$size-1;
+}
+
+.developer-cta__button span {
+    font-size: tokens.$font-size-lg;
+    line-height: 0.8;
+}
+
+.developer-cta__contact {
+    margin-top: auto;
+    color: tokens.$color-text-secondary;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+@media (min-width: tokens.$breakpoint-tablet) {
+    .developer-cta {
+        min-height: 628px;
+        padding: 24px tokens.$page-padding-tablet;
+    }
+
+    .developer-cta__layout {
+        gap: tokens.$size-6;
+    }
+
+    .developer-cta__illustration {
+        flex-basis: 300px;
+    }
+
+    .developer-cta__card {
+        flex-basis: 256px;
+        padding: tokens.$size-7;
+    }
+
+    .developer-cta__title {
+        font-size: tokens.$font-size-xl;
+    }
+
+    .developer-cta__description {
+        margin-top: tokens.$size-3;
+        font-size: tokens.$font-size-sm;
+        line-height: 1.5;
+    }
+
+    .developer-cta__button {
+        min-height: 37px;
+        margin-top: tokens.$size-4;
+        padding: 10px 20px;
+        font-size: tokens.$font-size-sm;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-desktop) {
+    .developer-cta {
+        min-height: 563px;
+        padding: 40px 120px;
+    }
+
+    .developer-cta__layout {
+        flex-direction: row;
+        align-items: center;
+        gap: 40px;
+        max-width: 1680px;
+        margin-inline: auto;
+    }
+
+    .developer-cta__illustration {
+        flex: 0 1 682px;
+        height: 483px;
+    }
+
+    .developer-cta__card {
+        flex: 1 1 958px;
+        height: 344px;
+        padding: 40px;
+    }
+
+    .developer-cta__title {
+        font-size: 32px;
+        line-height: 1.2;
+    }
+
+    .developer-cta__description {
+        margin-top: 24px;
+        font-size: 18px;
+        line-height: 1.5;
+    }
+
+    .developer-cta__button {
+        min-height: 56px;
+        margin-top: 24px;
+        padding: 16px 24px;
+        font-size: 18px;
+    }
+
+    .developer-cta__contact {
+        font-size: tokens.$font-size-sm;
+    }
+}
