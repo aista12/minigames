@@ -16,6 +16,7 @@
         "preview": "vite preview",
         "type-check": "tsc --noEmit",
         "prepare": "husky",
-        "lint": "eslint src --max-warnings=0"
+        "lint": "eslint src --max-warnings=0",
+        "format": "prettier --write ."
     }
 }
