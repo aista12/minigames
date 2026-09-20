@@ -1,5 +1,5 @@
 import './hero.scss';
-import heroBackgroundUrl from './assets/hero-background.png';
+import heroBackgroundUrl from '../assets/hero-background.png';
 
 export const createHero = (): HTMLElement => {
     const section = document.createElement('section');
