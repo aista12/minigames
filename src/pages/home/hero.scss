@@ -16,7 +16,7 @@
 }
 
 .hero__background {
-    z-index: -1;
+    z-index: 0;
     background-color: tokens.$color-footer-background;
 }
 
@@ -34,6 +34,8 @@
 }
 
 .hero__content {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex: 1 0 0;
     flex-direction: column;
