@@ -71,7 +71,8 @@ export const createHeader = (): HTMLElement => {
     actions.className = 'site-header__actions';
 
     const logInButton = document.createElement('button');
-    logInButton.className = 'site-header__button site-header__button--secondary';
+    logInButton.className =
+        'site-header__button site-header__button--secondary';
     logInButton.type = 'button';
     logInButton.textContent = 'Log In';
     logInButton.addEventListener('click', () => dialog.showModal());

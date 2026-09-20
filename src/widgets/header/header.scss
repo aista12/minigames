@@ -64,7 +64,8 @@
 
 .site-header__button {
     min-height: tokens.$button-height-lg;
-    padding: tokens.$header-button-padding-block tokens.$header-button-padding-inline;
+    padding: tokens.$header-button-padding-block
+        tokens.$header-button-padding-inline;
     border: 2px solid tokens.$color-border;
     border-radius: tokens.$radius-md;
     color: tokens.$color-text;
@@ -72,7 +73,9 @@
     font: inherit;
     font-size: tokens.$font-size-sm;
     font-weight: tokens.$font-weight-bold;
-    transition: background-color 160ms ease, transform 160ms ease;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
 }
 
 .site-header__button--secondary {
@@ -169,7 +172,8 @@
 
     .site-header__button {
         min-height: 37px;
-        padding: tokens.$header-button-small-padding-block tokens.$header-button-small-padding-inline;
+        padding: tokens.$header-button-small-padding-block
+            tokens.$header-button-small-padding-inline;
     }
 
     .site-header__navigation,
@@ -225,7 +229,8 @@
 
     .site-header__button {
         min-height: tokens.$button-height-lg;
-        padding: tokens.$header-button-padding-block tokens.$header-button-padding-inline;
+        padding: tokens.$header-button-padding-block
+            tokens.$header-button-padding-inline;
     }
 
     .site-header__button--secondary {
