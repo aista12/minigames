@@ -1,9 +1,9 @@
 import './carousel.scss';
-import bubbleShooterUrl from './assets/game-bubble-shooter.png';
-import candyCrushUrl from './assets/game-candy-crush.png';
-import islandersUrl from './assets/game-islanders.png';
-import vacationCafeUrl from './assets/game-vacation-cafe.png';
-import winterBurrowUrl from './assets/game-winter-burrow.png';
+import bubbleShooterUrl from '../assets/game-bubble-shooter.png';
+import candyCrushUrl from '../assets/game-candy-crush.png';
+import islandersUrl from '../assets/game-islanders.png';
+import vacationCafeUrl from '../assets/game-vacation-cafe.png';
+import winterBurrowUrl from '../assets/game-winter-burrow.png';
 
 type GameCard = {
     title: string;

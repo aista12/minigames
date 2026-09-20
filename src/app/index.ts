@@ -9,12 +9,16 @@ import { createHeader } from '../widgets/header/header';
 const app = document.createElement('div');
 
 app.id = 'app';
-app.append(
-    createHeader(),
+const main = document.createElement('main');
+main.append(
     createHero(),
     createCarousel(),
     createLeaderboard(),
     createDeveloperCta(),
+);
+app.append(
+    createHeader(),
+    main,
     createFooter(),
 );
 

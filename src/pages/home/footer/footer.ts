@@ -1,5 +1,5 @@
 import './footer.scss';
-import brandLogoUrl from '../../shared/assets/brand-logo.png';
+import brandLogoUrl from '../../../shared/assets/brand-logo.png';
 
 const homeLink = '#home';
 const githubLink = 'https://github.com/aista12';
