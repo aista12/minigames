@@ -1,10 +1,8 @@
 import '../shared/styles/globals.scss';
 
-const app: HTMLDivElement | null =
-    document.querySelector<HTMLDivElement>('#app')!;
+const app = document.createElement('div');
 
-if (app) {
-    app.innerHTML = `
-    <h1>Welcome to Mini Games</h1>
-  `;
-}
+app.id = 'app';
+app.textContent = 'Welcome to MiniGames';
+
+document.body.append(app);
