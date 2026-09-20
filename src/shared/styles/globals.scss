@@ -1,5 +1,7 @@
 @use './tokens' as tokens;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
 * {
     box-sizing: border-box;
 }
@@ -7,10 +9,22 @@
 html {
     font-family: tokens.$font-family-base;
     font-size: tokens.$font-size-md;
+    background-color: tokens.$color-background;
 }
 
 body {
+    min-width: 375px;
     margin: 0;
+    overflow-x: hidden;
     background-color: tokens.$color-background;
     color: tokens.$color-text;
+}
+
+body.mobile-menu-open {
+    overflow: hidden;
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
 }
