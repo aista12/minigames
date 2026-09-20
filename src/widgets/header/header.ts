@@ -3,6 +3,7 @@ import brandLogoUrl from '../../shared/assets/brand-logo.png';
 import menuIconUrl from '../../shared/assets/menu.svg';
 
 const homeLink = '#home';
+type AuthMode = 'login' | 'signup';
 
 const createLogo = (): HTMLAnchorElement => {
     const logo = document.createElement('a');
@@ -43,15 +44,53 @@ const createNavigation = (): HTMLElement => {
     return navigation;
 };
 
-const createAuthDialog = (): HTMLDialogElement => {
+const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
     const dialog = document.createElement('dialog');
     dialog.className = 'auth-dialog';
     dialog.setAttribute('aria-labelledby', 'auth-dialog-title');
+    const isSignUp = mode === 'signup';
+    const fields = isSignUp
+        ? `
+            <label class="auth-dialog__field">
+                <span>Display name</span>
+                <input type="text" autocomplete="name" placeholder="Display name" />
+            </label>
+            <label class="auth-dialog__field">
+                <span>Email</span>
+                <input type="email" autocomplete="email" placeholder="Email" />
+            </label>
+            <label class="auth-dialog__field">
+                <span>Password</span>
+                <input type="password" autocomplete="new-password" placeholder="Password" />
+            </label>
+        `
+        : `
+            <label class="auth-dialog__field">
+                <span>Email or username</span>
+                <input type="email" autocomplete="email" placeholder="Email or username" />
+            </label>
+            <label class="auth-dialog__field">
+                <span>Password</span>
+                <input type="password" autocomplete="current-password" placeholder="Password" />
+            </label>
+        `;
+    const footer = isSignUp
+        ? '<p class="auth-dialog__signup">Already have an account? <a href="#home" data-auth-mode="login">Login</a></p>'
+        : '<p class="auth-dialog__signup">New to MiniGames? <a href="#home" data-auth-mode="signup">Register</a></p>';
     dialog.innerHTML = `
-        <form method="dialog" class="auth-dialog__content">
-            <button class="auth-dialog__close" type="submit" aria-label="Close sign in dialog">×</button>
-            <h2 id="auth-dialog-title">Sign in</h2>
-            <p>Authentication will be available here.</p>
+        <form class="auth-dialog__content auth-dialog__content--${mode}">
+            <button class="auth-dialog__close" type="button" aria-label="Close ${isSignUp ? 'sign up' : 'sign in'} dialog">×</button>
+            <div class="auth-dialog__switcher" role="tablist" aria-label="Authentication mode">
+                <button class="auth-dialog__tab${isSignUp ? '' : ' auth-dialog__tab--active'}" type="button" role="tab" aria-selected="${!isSignUp}" data-auth-mode="login">Login</button>
+                <button class="auth-dialog__tab${isSignUp ? ' auth-dialog__tab--active' : ''}" type="button" role="tab" aria-selected="${isSignUp}" data-auth-mode="signup">Registration</button>
+            </div>
+            <div class="auth-dialog__eyebrow">MINIGAMES ACCOUNT</div>
+            <h2 id="auth-dialog-title">${isSignUp ? 'Create your account' : 'Sign in'}</h2>
+            <p class="auth-dialog__intro">${isSignUp ? 'Join the fun and keep your games in one place.' : 'Welcome back. Pick up where you left off.'}</p>
+            ${fields}
+            <button class="auth-dialog__submit" type="button">${isSignUp ? 'Sign up' : 'Sign in'}</button>
+            ${isSignUp ? '' : '<div class="auth-dialog__options"><label><input type="checkbox" /> <span>Remember me</span></label><a href="#home">Need help?</a></div>'}
+            ${footer}
         </form>
     `;
 
@@ -59,8 +98,8 @@ const createAuthDialog = (): HTMLDialogElement => {
 };
 
 const createMobileMenu = (
-    dialog: HTMLDialogElement,
     returnFocus: () => void,
+    openAuthDialog: (mode: AuthMode) => void,
 ): HTMLElement => {
     const menu = document.createElement('aside');
     menu.className = 'mobile-menu';
@@ -131,13 +170,15 @@ const createMobileMenu = (
         }
     });
 
-    const openAuthDialog = (): void => {
+    const openMobileAuthDialog = (mode: AuthMode): void => {
         closeMenu();
-        dialog.showModal();
+        openAuthDialog(mode);
     };
 
-    logInButton.addEventListener('click', openAuthDialog);
-    signUpButton.addEventListener('click', openAuthDialog);
+    logInButton.addEventListener('click', () => openMobileAuthDialog('login'));
+    signUpButton.addEventListener('click', () =>
+        openMobileAuthDialog('signup'),
+    );
 
     document.addEventListener('keydown', (event) => {
         if (
@@ -160,6 +201,107 @@ export const createHeader = (): HTMLElement => {
     content.append(createLogo(), createNavigation());
 
     const dialog = createAuthDialog();
+    let closeTimer: number | undefined;
+    let switchTimer: number | undefined;
+
+    const setAuthMode = (mode: AuthMode, isAnimated: boolean): void => {
+        if (switchTimer !== undefined) {
+            globalThis.clearTimeout(switchTimer);
+            switchTimer = undefined;
+        }
+
+        const updateContent = (): void => {
+            const variant = createAuthDialog(mode);
+            dialog.innerHTML = variant.getHTML();
+            requestAnimationFrame(() => {
+                dialog.classList.remove('auth-dialog--switching');
+            });
+            switchTimer = undefined;
+        };
+
+        if (!isAnimated || !dialog.open) {
+            updateContent();
+            return;
+        }
+
+        dialog.classList.add('auth-dialog--switching');
+        switchTimer = globalThis.setTimeout(updateContent, 120);
+    };
+
+    const openAuthDialog = (mode: AuthMode): void => {
+        if (closeTimer !== undefined) {
+            globalThis.clearTimeout(closeTimer);
+            closeTimer = undefined;
+        }
+
+        dialog.classList.remove('auth-dialog--closing');
+        document.body.classList.add('auth-dialog-open');
+        setAuthMode(mode, false);
+        dialog.showModal();
+        requestAnimationFrame(() => {
+            dialog.classList.add('auth-dialog--visible');
+        });
+    };
+
+    const closeAuthDialog = (): void => {
+        if (!dialog.open || dialog.classList.contains('auth-dialog--closing')) {
+            return;
+        }
+
+        dialog.classList.remove(
+            'auth-dialog--visible',
+            'auth-dialog--switching',
+        );
+        if (switchTimer !== undefined) {
+            globalThis.clearTimeout(switchTimer);
+            switchTimer = undefined;
+        }
+        dialog.classList.add('auth-dialog--closing');
+        closeTimer = globalThis.setTimeout(() => {
+            dialog.close();
+            dialog.classList.remove('auth-dialog--closing');
+            document.body.classList.remove('auth-dialog-open');
+            closeTimer = undefined;
+        }, 180);
+    };
+
+    dialog.addEventListener('click', (event) => {
+        const switchTarget =
+            event.target instanceof Element
+                ? event.target.closest<HTMLElement>('[data-auth-mode]')
+                : undefined;
+        const nextMode = switchTarget?.dataset.authMode;
+        if (nextMode === 'login' || nextMode === 'signup') {
+            event.preventDefault();
+            setAuthMode(nextMode, true);
+            return;
+        }
+
+        if (
+            event.target instanceof HTMLButtonElement &&
+            event.target.classList.contains('auth-dialog__close')
+        ) {
+            closeAuthDialog();
+            return;
+        }
+
+        if (event.target === dialog) {
+            closeAuthDialog();
+        }
+    });
+    dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        closeAuthDialog();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !dialog.open) {
+            return;
+        }
+
+        event.preventDefault();
+        closeAuthDialog();
+    });
+
     const actions = document.createElement('div');
     actions.className = 'site-header__actions';
 
@@ -168,13 +310,13 @@ export const createHeader = (): HTMLElement => {
         'site-header__button site-header__button--secondary';
     logInButton.type = 'button';
     logInButton.textContent = 'Log In';
-    logInButton.addEventListener('click', () => dialog.showModal());
+    logInButton.addEventListener('click', () => openAuthDialog('login'));
 
     const signUpButton = document.createElement('button');
     signUpButton.className = 'site-header__button site-header__button--primary';
     signUpButton.type = 'button';
     signUpButton.textContent = 'Sign Up';
-    signUpButton.addEventListener('click', () => dialog.showModal());
+    signUpButton.addEventListener('click', () => openAuthDialog('signup'));
 
     const menuButton = document.createElement('button');
     menuButton.className = 'site-header__menu-button';
@@ -186,7 +328,10 @@ export const createHeader = (): HTMLElement => {
     menuIcon.alt = '';
     menuButton.append(menuIcon);
 
-    const mobileMenu = createMobileMenu(dialog, () => menuButton.focus());
+    const mobileMenu = createMobileMenu(
+        () => menuButton.focus(),
+        openAuthDialog,
+    );
     menuButton.addEventListener('click', () => {
         mobileMenu.classList.add('mobile-menu--open');
         mobileMenu.setAttribute('aria-hidden', 'false');

@@ -24,6 +24,10 @@ body.mobile-menu-open {
     overflow: hidden;
 }
 
+body.auth-dialog-open {
+    overflow: hidden;
+}
+
 button,
 a {
     -webkit-tap-highlight-color: transparent;
