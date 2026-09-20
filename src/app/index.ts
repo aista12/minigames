@@ -16,10 +16,6 @@ main.append(
     createLeaderboard(),
     createDeveloperCta(),
 );
-app.append(
-    createHeader(),
-    main,
-    createFooter(),
-);
+app.append(createHeader(), main, createFooter());
 
 document.body.append(app);
