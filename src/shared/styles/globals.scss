@@ -15,8 +15,13 @@ html {
 body {
     min-width: 375px;
     margin: 0;
+    overflow-x: hidden;
     background-color: tokens.$color-background;
     color: tokens.$color-text;
+}
+
+body.mobile-menu-open {
+    overflow: hidden;
 }
 
 button,
