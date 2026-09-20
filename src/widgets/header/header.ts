@@ -75,11 +75,15 @@ const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
             </label>
         `;
     const footer = isSignUp
-        ? '<p class="auth-dialog__signup">Already have an account? <a href="#home">Log in.</a></p>'
-        : '<p class="auth-dialog__signup">New to MiniGames? <a href="#home">Sign up now.</a></p>';
+        ? '<p class="auth-dialog__signup">Already have an account? <a href="#home" data-auth-mode="login">Login</a></p>'
+        : '<p class="auth-dialog__signup">New to MiniGames? <a href="#home" data-auth-mode="signup">Register</a></p>';
     dialog.innerHTML = `
         <form class="auth-dialog__content auth-dialog__content--${mode}">
             <button class="auth-dialog__close" type="button" aria-label="Close ${isSignUp ? 'sign up' : 'sign in'} dialog">×</button>
+            <div class="auth-dialog__switcher" role="tablist" aria-label="Authentication mode">
+                <button class="auth-dialog__tab${isSignUp ? '' : ' auth-dialog__tab--active'}" type="button" role="tab" aria-selected="${!isSignUp}" data-auth-mode="login">Login</button>
+                <button class="auth-dialog__tab${isSignUp ? ' auth-dialog__tab--active' : ''}" type="button" role="tab" aria-selected="${isSignUp}" data-auth-mode="signup">Registration</button>
+            </div>
             <div class="auth-dialog__eyebrow">MINIGAMES ACCOUNT</div>
             <h2 id="auth-dialog-title">${isSignUp ? 'Create your account' : 'Sign in'}</h2>
             <p class="auth-dialog__intro">${isSignUp ? 'Join the fun and keep your games in one place.' : 'Welcome back. Pick up where you left off.'}</p>
@@ -198,6 +202,31 @@ export const createHeader = (): HTMLElement => {
 
     const dialog = createAuthDialog();
     let closeTimer: number | undefined;
+    let switchTimer: number | undefined;
+
+    const setAuthMode = (mode: AuthMode, isAnimated: boolean): void => {
+        if (switchTimer !== undefined) {
+            globalThis.clearTimeout(switchTimer);
+            switchTimer = undefined;
+        }
+
+        const updateContent = (): void => {
+            const variant = createAuthDialog(mode);
+            dialog.innerHTML = variant.getHTML();
+            requestAnimationFrame(() => {
+                dialog.classList.remove('auth-dialog--switching');
+            });
+            switchTimer = undefined;
+        };
+
+        if (!isAnimated || !dialog.open) {
+            updateContent();
+            return;
+        }
+
+        dialog.classList.add('auth-dialog--switching');
+        switchTimer = globalThis.setTimeout(updateContent, 120);
+    };
 
     const openAuthDialog = (mode: AuthMode): void => {
         if (closeTimer !== undefined) {
@@ -207,8 +236,7 @@ export const createHeader = (): HTMLElement => {
 
         dialog.classList.remove('auth-dialog--closing');
         document.body.classList.add('auth-dialog-open');
-        const variant = createAuthDialog(mode);
-        dialog.innerHTML = variant.getHTML();
+        setAuthMode(mode, false);
         dialog.showModal();
         requestAnimationFrame(() => {
             dialog.classList.add('auth-dialog--visible');
@@ -220,7 +248,14 @@ export const createHeader = (): HTMLElement => {
             return;
         }
 
-        dialog.classList.remove('auth-dialog--visible');
+        dialog.classList.remove(
+            'auth-dialog--visible',
+            'auth-dialog--switching',
+        );
+        if (switchTimer !== undefined) {
+            globalThis.clearTimeout(switchTimer);
+            switchTimer = undefined;
+        }
         dialog.classList.add('auth-dialog--closing');
         closeTimer = globalThis.setTimeout(() => {
             dialog.close();
@@ -231,6 +266,17 @@ export const createHeader = (): HTMLElement => {
     };
 
     dialog.addEventListener('click', (event) => {
+        const switchTarget =
+            event.target instanceof Element
+                ? event.target.closest<HTMLElement>('[data-auth-mode]')
+                : undefined;
+        const nextMode = switchTarget?.dataset.authMode;
+        if (nextMode === 'login' || nextMode === 'signup') {
+            event.preventDefault();
+            setAuthMode(nextMode, true);
+            return;
+        }
+
         if (
             event.target instanceof HTMLButtonElement &&
             event.target.classList.contains('auth-dialog__close')

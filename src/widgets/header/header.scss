@@ -49,6 +49,7 @@
 .site-header__menu-button:focus-visible,
 .auth-dialog__close:focus-visible,
 .auth-dialog__submit:focus-visible,
+.auth-dialog__tab:focus-visible,
 .auth-dialog__field input:focus-visible,
 .auth-dialog__options a:focus-visible,
 .auth-dialog__signup a:focus-visible {
@@ -245,7 +246,7 @@
 .auth-dialog {
     top: 50%;
     left: 50%;
-    width: min(calc(100% - (tokens.$page-padding-mobile * 2)), 460px);
+    width: min(calc(100% - (tokens.$page-padding-mobile * 2)), 420px);
     margin: 0;
     padding: 0;
     border: 2px solid tokens.$color-border;
@@ -286,6 +287,50 @@
     position: relative;
     margin: 0;
     padding: 40px;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        opacity 120ms ease,
+        transform 120ms ease;
+}
+
+.auth-dialog--switching .auth-dialog__content {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.auth-dialog__switcher {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 28px;
+    padding: 4px;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-footer-surface;
+}
+
+.auth-dialog__tab {
+    min-height: 36px;
+    border: 0;
+    border-radius: tokens.$radius-sm;
+    background: transparent;
+    color: tokens.$color-footer-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-semibold;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+}
+
+.auth-dialog__tab:hover {
+    color: tokens.$color-white;
+}
+
+.auth-dialog__tab--active {
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
 }
 
 .auth-dialog__content h2,
