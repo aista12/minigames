@@ -47,7 +47,11 @@
 .site-header__link:focus-visible,
 .site-header__button:focus-visible,
 .site-header__menu-button:focus-visible,
-.auth-dialog__close:focus-visible {
+.auth-dialog__close:focus-visible,
+.auth-dialog__submit:focus-visible,
+.auth-dialog__field input:focus-visible,
+.auth-dialog__options a:focus-visible,
+.auth-dialog__signup a:focus-visible {
     outline: 2px solid tokens.$color-border;
     outline-offset: tokens.$size-1;
 }
@@ -239,22 +243,49 @@
 }
 
 .auth-dialog {
-    width: min(calc(100% - (tokens.$page-padding-mobile * 2)), 400px);
+    top: 50%;
+    left: 50%;
+    width: min(calc(100% - (tokens.$page-padding-mobile * 2)), 460px);
+    margin: 0;
     padding: 0;
     border: 2px solid tokens.$color-border;
     border-radius: tokens.$radius-lg;
-    background: tokens.$color-surface;
-    color: tokens.$color-text;
+    background: tokens.$color-footer-background;
+    color: tokens.$color-white;
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.96);
+    transition:
+        opacity 180ms ease,
+        transform 180ms ease;
+}
+
+.auth-dialog[open].auth-dialog--visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.auth-dialog[open].auth-dialog--closing {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.96);
 }
 
 .auth-dialog::backdrop {
+    background-color: rgb(0 0 0 / 0%);
+    transition: background-color 180ms ease;
+}
+
+.auth-dialog[open].auth-dialog--visible::backdrop {
     background-color: rgb(0 0 0 / 65%);
+}
+
+.auth-dialog[open].auth-dialog--closing::backdrop {
+    background-color: rgb(0 0 0 / 0%);
 }
 
 .auth-dialog__content {
     position: relative;
     margin: 0;
-    padding: tokens.$size-8;
+    padding: 40px;
 }
 
 .auth-dialog__content h2,
@@ -262,9 +293,127 @@
     margin: 0;
 }
 
-.auth-dialog__content p {
-    margin-top: tokens.$size-3;
-    color: tokens.$color-text-secondary;
+.auth-dialog__eyebrow {
+    color: tokens.$color-primary;
+    font-size: 11px;
+    font-weight: tokens.$font-weight-bold;
+    letter-spacing: 1.5px;
+}
+
+.auth-dialog__content h2 {
+    margin-top: tokens.$size-2;
+    color: tokens.$color-white;
+    font-size: 32px;
+    font-weight: tokens.$font-weight-bold;
+    line-height: 1.15;
+}
+
+.auth-dialog__intro {
+    margin-top: tokens.$size-3 !important;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-sm;
+    line-height: 1.5;
+}
+
+.auth-dialog__field {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$size-2;
+    margin-top: tokens.$size-5;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-xs;
+    font-weight: tokens.$font-weight-semibold;
+}
+
+.auth-dialog__field + .auth-dialog__field {
+    margin-top: tokens.$size-4;
+}
+
+.auth-dialog__field input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid rgb(185 181 201 / 45%);
+    border-radius: tokens.$radius-sm;
+    background-color: tokens.$color-footer-surface;
+    color: tokens.$color-white;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    outline: 0;
+}
+
+.auth-dialog__field input::placeholder {
+    color: rgb(185 181 201 / 72%);
+}
+
+.auth-dialog__field input:focus {
+    border-color: tokens.$color-primary;
+    box-shadow: 0 0 0 2px rgb(255 208 43 / 25%);
+}
+
+.auth-dialog__submit {
+    width: 100%;
+    min-height: 48px;
+    margin-top: tokens.$size-6;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-md;
+    font-weight: tokens.$font-weight-bold;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.auth-dialog__submit:hover {
+    background-color: tokens.$color-primary-hover;
+}
+
+.auth-dialog__submit:active {
+    background-color: tokens.$color-primary-active;
+    transform: translateY(1px);
+}
+
+.auth-dialog__options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: tokens.$size-3;
+    margin-top: tokens.$size-4;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-xs;
+}
+
+.auth-dialog__options label {
+    display: inline-flex;
+    align-items: center;
+    gap: tokens.$size-1;
+}
+
+.auth-dialog__options input {
+    accent-color: tokens.$color-primary;
+}
+
+.auth-dialog__options a,
+.auth-dialog__signup a {
+    color: tokens.$color-white;
+    text-decoration: none;
+}
+
+.auth-dialog__options a:hover,
+.auth-dialog__signup a:hover {
+    color: tokens.$color-primary;
+    text-decoration: underline;
+}
+
+.auth-dialog__signup {
+    margin-top: 40px !important;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-sm;
+    line-height: 1.5;
 }
 
 .auth-dialog__close {
@@ -278,9 +427,13 @@
     border: 0;
     border-radius: tokens.$radius-full;
     background: transparent;
-    color: tokens.$color-text;
+    color: tokens.$color-footer-text;
     cursor: pointer;
     font-size: tokens.$font-size-xl;
+}
+
+.auth-dialog__close:hover {
+    color: tokens.$color-white;
 }
 
 @media (min-width: tokens.$breakpoint-tablet) {
