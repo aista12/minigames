@@ -1,0 +1,53 @@
+$color-primary: #6c63ff;
+$color-secondary: #8b5cf6;
+$color-background: #ffffff;
+$color-surface: #f5f5f5;
+$color-text: #1f2937;
+$color-text-secondary: #6b7280;
+$color-border: #e5e7eb;
+$color-error: #dc2626;
+$color-success: #16a34a;
+
+$size-1: 4px;
+$size-2: 8px;
+$size-3: 12px;
+$size-4: 16px;
+$size-5: 20px;
+$size-6: 24px;
+$size-7: 32px;
+$size-8: 40px;
+$size-9: 48px;
+$size-10: 64px;
+
+$shadow-sm: 0 1px 2px rgb(0 0 0 / 10%);
+$shadow-md: 0 4px 12px rgb(0 0 0 / 12%);
+$shadow-lg: 0 8px 24px rgb(0 0 0 / 16%);
+
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-full: 9999px;
+
+$button-height-sm: 32px;
+$button-height-md: 40px;
+$button-height-lg: 48px;
+
+$font-family-base: Arial, sans-serif;
+$font-family-heading: Arial, sans-serif;
+
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-md: 16px;
+$font-size-lg: 20px;
+$font-size-xl: 24px;
+$font-size-2xl: 32px;
+
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$breakpoint-mobile: 480px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1440px;
