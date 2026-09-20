@@ -1,0 +1,258 @@
+@use '../../shared/styles/tokens' as tokens;
+
+.carousel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    overflow: hidden;
+}
+
+.carousel-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.carousel-section__heading-group {
+    display: flex;
+    align-items: center;
+    gap: tokens.$size-2;
+}
+
+.carousel-section__accent {
+    display: block;
+    width: 8px;
+    height: 24px;
+    border: 1.5px solid tokens.$color-border;
+    border-radius: tokens.$radius-sm;
+    background-color: tokens.$color-primary;
+}
+
+.carousel-section__title {
+    margin: 0;
+    color: tokens.$color-text;
+    font-size: tokens.$font-size-xl;
+    font-weight: tokens.$font-weight-bold;
+    line-height: 1;
+}
+
+.carousel-section__controls {
+    display: none;
+    gap: tokens.$size-4;
+}
+
+.carousel-section__control {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-full;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text;
+    font: inherit;
+    font-size: tokens.$font-size-lg;
+    line-height: 1;
+}
+
+.carousel-section__control--next {
+    background-color: tokens.$color-primary;
+}
+
+.carousel-section__track {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    width: 100%;
+    height: 206px;
+    padding-inline: tokens.$size-1;
+    overflow: hidden;
+}
+
+.carousel-card {
+    container-type: inline-size;
+    position: relative;
+    flex: 0 0 56px;
+    height: 200px;
+    overflow: hidden;
+    border: 2.5px solid tokens.$color-border;
+    border-radius: 16px;
+    background-color: tokens.$color-surface;
+    box-shadow: 4px 4px 0 tokens.$color-border;
+}
+
+.carousel-card__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.carousel-card__overlay {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: none;
+    flex-direction: column;
+    gap: tokens.$size-2;
+    min-height: 80px;
+    padding: tokens.$size-4;
+    background: linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 0%),
+        rgb(0 0 0 / 40%) 17%,
+        rgb(0 0 0 / 85%) 46%
+    );
+    color: tokens.$color-white;
+}
+
+.carousel-card__title {
+    width: 100%;
+    margin: auto 0 0;
+    overflow: hidden;
+    color: inherit;
+    font-size: 18px;
+    font-weight: tokens.$font-weight-bold;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.carousel-card__details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-bold;
+    line-height: 1;
+}
+
+.carousel-card__rating,
+.carousel-card__likes {
+    display: inline-flex;
+    align-items: center;
+    gap: tokens.$size-1;
+    white-space: nowrap;
+}
+
+.carousel-card__rating span {
+    color: tokens.$color-primary;
+    font-size: tokens.$font-size-md;
+}
+
+.carousel-card__likes span {
+    color: #ff4b55;
+    font-size: 24px;
+    line-height: 0.7;
+}
+
+@container (min-width: 283px) {
+    .carousel-card__overlay {
+        display: flex;
+    }
+}
+
+@media (max-width: 767px) {
+    .carousel-card--second,
+    .carousel-card--fourth {
+        display: none;
+    }
+
+    .carousel-card--third {
+        flex-basis: 218px;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-tablet) {
+    .carousel-section {
+        gap: tokens.$size-6;
+        padding: tokens.$size-6 tokens.$page-padding-tablet;
+    }
+
+    .carousel-section__controls {
+        display: flex;
+    }
+
+    .carousel-section__track {
+        height: 288px;
+    }
+
+    .carousel-card {
+        height: 280px;
+    }
+
+    .carousel-card--second,
+    .carousel-card--fourth {
+        display: none;
+    }
+
+    .carousel-card--third {
+        flex-basis: 448px;
+    }
+
+    .carousel-card--first {
+        flex-basis: 105px;
+    }
+
+    .carousel-card--fifth {
+        flex-basis: 104px;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-desktop) {
+    .carousel-section {
+        gap: tokens.$size-10;
+        padding: tokens.$size-8 120px;
+    }
+
+    .carousel-section__heading-group {
+        flex: 1;
+    }
+
+    .carousel-section__accent {
+        height: 32px;
+    }
+
+    .carousel-section__title {
+        font-size: tokens.$font-size-2xl;
+    }
+
+    .carousel-section__control {
+        width: 48px;
+        height: 48px;
+        font-size: tokens.$font-size-xl;
+    }
+
+    .carousel-section__track {
+        height: 388px;
+    }
+
+    .carousel-card {
+        height: 384px;
+        border-radius: 24px;
+    }
+
+    .carousel-card--second,
+    .carousel-card--fourth {
+        display: block;
+    }
+
+    .carousel-card--first,
+    .carousel-card--fifth {
+        flex-basis: 120px;
+    }
+
+    .carousel-card--second,
+    .carousel-card--fourth {
+        flex-basis: 288px;
+    }
+
+    .carousel-card--third {
+        flex-basis: 816px;
+    }
+}
