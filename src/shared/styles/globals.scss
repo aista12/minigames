@@ -1,0 +1,16 @@
+@use './tokens' as tokens;
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    font-family: tokens.$font-family-base;
+    font-size: tokens.$font-size-md;
+}
+
+body {
+    margin: 0;
+    background-color: tokens.$color-background;
+    color: tokens.$color-text;
+}

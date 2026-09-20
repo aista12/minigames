@@ -1,3 +1,5 @@
+import '../shared/styles/globals.scss';
+
 const app: HTMLDivElement | null =
     document.querySelector<HTMLDivElement>('#app')!;
 
