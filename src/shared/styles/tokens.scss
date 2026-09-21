@@ -1,0 +1,81 @@
+$color-primary: #ffd02b;
+$color-primary-hover: #e8ba18;
+$color-primary-active: #d3a80f;
+$color-background: #f9f8f3;
+$color-surface: #ffffff;
+$color-text: #242145;
+$color-text-secondary: #5f5d75;
+$color-border: #242145;
+$color-footer-background: #1e1b3a;
+$color-footer-surface: #2a264f;
+$color-footer-text: #b9b5c9;
+$color-white: #ffffff;
+$color-error: #dc2626;
+$color-success: #16a34a;
+
+$size-1: 4px;
+$size-2: 8px;
+$size-3: 12px;
+$size-4: 16px;
+$size-5: 20px;
+$size-6: 24px;
+$size-7: 32px;
+$size-8: 40px;
+$size-9: 48px;
+$size-10: 64px;
+$size-11: 80px;
+$size-12: 96px;
+
+$page-max-width: 1920px;
+$page-padding-mobile: 16px;
+$page-padding-tablet: 40px;
+$page-padding-desktop: 80px;
+$header-height-mobile: 64px;
+$header-height-tablet: 72px;
+$header-height-desktop: 85px;
+$header-logo-icon-size: 32px;
+$header-logo-glyph-size: 24px;
+$header-logo-gap: 8px;
+$header-nav-gap: 40px;
+$header-action-gap: 16px;
+$header-button-padding-inline: 20px;
+$header-button-padding-block: 10px;
+$header-button-small-padding-inline: 16px;
+$header-button-small-padding-block: 8px;
+$mobile-menu-padding: 24px;
+$mobile-menu-gap: 32px;
+$mobile-menu-link-gap: 24px;
+$mobile-menu-action-gap: 16px;
+
+$shadow-sm: 0 1px 2px rgb(0 0 0 / 10%);
+$shadow-md: 0 4px 12px rgb(0 0 0 / 12%);
+$shadow-lg: 0 8px 24px rgb(0 0 0 / 16%);
+
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-full: 9999px;
+
+$button-height-sm: 32px;
+$button-height-md: 40px;
+$button-height-lg: 42px;
+
+$font-family-base: Inter, Arial, sans-serif;
+$font-family-heading: Inter, Arial, sans-serif;
+
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-md: 16px;
+$font-size-lg: 20px;
+$font-size-xl: 24px;
+$font-size-2xl: 32px;
+
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$breakpoint-mobile: 480px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1440px;
