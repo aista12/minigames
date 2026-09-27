@@ -1,0 +1,17 @@
+echo "Running ESLint..."
+npx eslint src --max-warnings=0
+
+if [ $? -ne 0 ]; then
+    echo "ESLint check failed. Push aborted."
+    exit 1
+fi
+
+echo "Running Prettier..."
+npx prettier --check .
+
+if [ $? -ne 0 ]; then
+    echo "Prettier check failed. Push aborted."
+    exit 1
+fi
+
+echo "All checks passed."

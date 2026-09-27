@@ -1,0 +1,10 @@
+commit_msg_file="$1"
+commit_msg=$(head -n 1 "$commit_msg_file")
+
+if ! printf '%s\n' "$commit_msg" | grep -Eq '^(feat|fix|refactor|docs|style|test|perf|build|ci|chore|revert)(\([a-z0-9._/-]+\))?: [^[:space:]].*$'; then
+    echo "Invalid commit message."
+    echo "Use Conventional Commits format:"
+    echo "  feat: add login form"
+    echo "  fix(parser): prevent racing of requests"
+    exit 1
+fi

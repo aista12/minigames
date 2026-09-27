@@ -1,0 +1,571 @@
+@use '../../shared/styles/tokens' as tokens;
+
+.site-header {
+    position: relative;
+    z-index: 10;
+    height: tokens.$header-height-mobile;
+    border-bottom: 2px solid tokens.$color-border;
+    background-color: tokens.$color-background;
+}
+
+.site-header__content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: min(100%, tokens.$page-max-width);
+    height: 100%;
+    margin-inline: auto;
+    padding-inline: tokens.$page-padding-mobile;
+}
+
+.site-logo {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: tokens.$header-logo-gap;
+    color: tokens.$color-text;
+    font-size: tokens.$font-size-lg;
+    font-weight: tokens.$font-weight-bold;
+    text-decoration: none;
+}
+
+.site-logo__icon {
+    display: grid;
+    width: tokens.$header-logo-icon-size;
+    height: tokens.$header-logo-icon-size;
+    place-items: center;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+}
+
+.site-logo__icon img {
+    width: tokens.$header-logo-glyph-size;
+    height: tokens.$header-logo-glyph-size;
+}
+
+.site-logo:focus-visible,
+.site-header__link:focus-visible,
+.site-header__button:focus-visible,
+.site-header__menu-button:focus-visible,
+.auth-dialog__close:focus-visible,
+.auth-dialog__submit:focus-visible,
+.auth-dialog__tab:focus-visible,
+.auth-dialog__field input:focus-visible,
+.auth-dialog__options a:focus-visible,
+.auth-dialog__signup a:focus-visible {
+    outline: 2px solid tokens.$color-border;
+    outline-offset: tokens.$size-1;
+}
+
+.site-header__navigation {
+    display: none;
+}
+
+.site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: tokens.$header-action-gap;
+}
+
+.site-header__button {
+    min-height: tokens.$button-height-lg;
+    padding: tokens.$header-button-padding-block
+        tokens.$header-button-padding-inline;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-bold;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.site-header__button--secondary {
+    background-color: tokens.$color-surface;
+}
+
+.site-header__button--primary {
+    background-color: tokens.$color-primary;
+}
+
+.site-header__button--primary:hover {
+    background-color: tokens.$color-primary-hover;
+}
+
+.site-header__button:active {
+    background-color: tokens.$color-primary-active;
+    transform: translateY(1px);
+}
+
+.site-header__menu-button {
+    display: inline-grid;
+    width: tokens.$header-logo-icon-size;
+    height: tokens.$header-logo-icon-size;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.site-header__menu-button img {
+    width: 100%;
+    height: 100%;
+}
+
+.mobile-menu {
+    position: fixed;
+    z-index: 2;
+    inset: 0;
+    display: flex;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100vh;
+    overflow: hidden;
+    background-color: tokens.$color-footer-background;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(100%);
+    transition:
+        opacity 220ms ease,
+        transform 220ms ease;
+}
+
+.mobile-menu--open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+.mobile-menu__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: tokens.$mobile-menu-gap;
+    min-width: 0;
+    padding: tokens.$mobile-menu-padding;
+}
+
+.mobile-menu__top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mobile-menu__logo {
+    color: tokens.$color-white;
+}
+
+.mobile-menu__logo .site-logo__icon {
+    border-color: tokens.$color-white;
+    background-color: tokens.$color-white;
+}
+
+.mobile-menu__close-button {
+    display: grid;
+    width: tokens.$header-logo-icon-size;
+    height: tokens.$header-logo-icon-size;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-footer-surface;
+    color: tokens.$color-white;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-xl;
+    line-height: 1;
+}
+
+.mobile-menu__navigation {
+    flex: 1;
+    min-height: 0;
+}
+
+.mobile-menu__links {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$mobile-menu-link-gap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mobile-menu__link {
+    color: tokens.$color-footer-text;
+    font-size: 18px;
+    font-weight: tokens.$font-weight-medium;
+    text-decoration: none;
+}
+
+.mobile-menu__link--active,
+.mobile-menu__link:hover {
+    color: tokens.$color-primary;
+    font-weight: tokens.$font-weight-bold;
+}
+
+.mobile-menu__actions {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$mobile-menu-action-gap;
+}
+
+.mobile-menu__auth-button {
+    width: 100%;
+    min-height: 38px;
+    border: 2px solid tokens.$color-white;
+    border-radius: tokens.$radius-md;
+    background: transparent;
+    color: tokens.$color-white;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-bold;
+}
+
+.mobile-menu__auth-button--primary {
+    border-color: tokens.$color-border;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+}
+
+.mobile-menu__auth-button--primary:hover {
+    background-color: tokens.$color-primary-hover;
+}
+
+.mobile-menu__close-button:focus-visible,
+.mobile-menu__link:focus-visible,
+.mobile-menu__auth-button:focus-visible {
+    outline: 2px solid tokens.$color-primary;
+    outline-offset: tokens.$size-1;
+}
+
+.auth-dialog {
+    top: 50%;
+    left: 50%;
+    width: min(calc(100% - (tokens.$page-padding-mobile * 2)), 420px);
+    margin: 0;
+    padding: 0;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-lg;
+    background: tokens.$color-footer-background;
+    color: tokens.$color-white;
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.96);
+    transition:
+        opacity 180ms ease,
+        transform 180ms ease;
+}
+
+.auth-dialog[open].auth-dialog--visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.auth-dialog[open].auth-dialog--closing {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.96);
+}
+
+.auth-dialog::backdrop {
+    background-color: rgb(0 0 0 / 0%);
+    transition: background-color 180ms ease;
+}
+
+.auth-dialog[open].auth-dialog--visible::backdrop {
+    background-color: rgb(0 0 0 / 65%);
+}
+
+.auth-dialog[open].auth-dialog--closing::backdrop {
+    background-color: rgb(0 0 0 / 0%);
+}
+
+.auth-dialog__content {
+    position: relative;
+    margin: 0;
+    padding: 40px;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        opacity 120ms ease,
+        transform 120ms ease;
+}
+
+.auth-dialog--switching .auth-dialog__content {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.auth-dialog__switcher {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 28px;
+    padding: 4px;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-footer-surface;
+}
+
+.auth-dialog__tab {
+    min-height: 36px;
+    border: 0;
+    border-radius: tokens.$radius-sm;
+    background: transparent;
+    color: tokens.$color-footer-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-semibold;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+}
+
+.auth-dialog__tab:hover {
+    color: tokens.$color-white;
+}
+
+.auth-dialog__tab--active {
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+}
+
+.auth-dialog__content h2,
+.auth-dialog__content p {
+    margin: 0;
+}
+
+.auth-dialog__eyebrow {
+    color: tokens.$color-primary;
+    font-size: 11px;
+    font-weight: tokens.$font-weight-bold;
+    letter-spacing: 1.5px;
+}
+
+.auth-dialog__content h2 {
+    margin-top: tokens.$size-2;
+    color: tokens.$color-white;
+    font-size: 32px;
+    font-weight: tokens.$font-weight-bold;
+    line-height: 1.15;
+}
+
+.auth-dialog__intro {
+    margin-top: tokens.$size-3 !important;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-sm;
+    line-height: 1.5;
+}
+
+.auth-dialog__field {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$size-2;
+    margin-top: tokens.$size-5;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-xs;
+    font-weight: tokens.$font-weight-semibold;
+}
+
+.auth-dialog__field + .auth-dialog__field {
+    margin-top: tokens.$size-4;
+}
+
+.auth-dialog__field input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid rgb(185 181 201 / 45%);
+    border-radius: tokens.$radius-sm;
+    background-color: tokens.$color-footer-surface;
+    color: tokens.$color-white;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    outline: 0;
+}
+
+.auth-dialog__field input::placeholder {
+    color: rgb(185 181 201 / 72%);
+}
+
+.auth-dialog__field input:focus {
+    border-color: tokens.$color-primary;
+    box-shadow: 0 0 0 2px rgb(255 208 43 / 25%);
+}
+
+.auth-dialog__submit {
+    width: 100%;
+    min-height: 48px;
+    margin-top: tokens.$size-6;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-md;
+    font-weight: tokens.$font-weight-bold;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.auth-dialog__submit:hover {
+    background-color: tokens.$color-primary-hover;
+}
+
+.auth-dialog__submit:active {
+    background-color: tokens.$color-primary-active;
+    transform: translateY(1px);
+}
+
+.auth-dialog__options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: tokens.$size-3;
+    margin-top: tokens.$size-4;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-xs;
+}
+
+.auth-dialog__options label {
+    display: inline-flex;
+    align-items: center;
+    gap: tokens.$size-1;
+}
+
+.auth-dialog__options input {
+    accent-color: tokens.$color-primary;
+}
+
+.auth-dialog__options a,
+.auth-dialog__signup a {
+    color: tokens.$color-white;
+    text-decoration: none;
+}
+
+.auth-dialog__options a:hover,
+.auth-dialog__signup a:hover {
+    color: tokens.$color-primary;
+    text-decoration: underline;
+}
+
+.auth-dialog__signup {
+    margin-top: 40px !important;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-sm;
+    line-height: 1.5;
+}
+
+.auth-dialog__close {
+    position: absolute;
+    top: tokens.$size-3;
+    right: tokens.$size-3;
+    display: grid;
+    width: tokens.$size-8;
+    height: tokens.$size-8;
+    place-items: center;
+    border: 0;
+    border-radius: tokens.$radius-full;
+    background: transparent;
+    color: tokens.$color-footer-text;
+    cursor: pointer;
+    font-size: tokens.$font-size-xl;
+}
+
+.auth-dialog__close:hover {
+    color: tokens.$color-white;
+}
+
+@media (min-width: tokens.$breakpoint-tablet) {
+    .site-header,
+    .site-header__content {
+        height: tokens.$header-height-tablet;
+    }
+
+    .site-header__content {
+        padding-inline: tokens.$page-padding-tablet;
+    }
+
+    .site-logo {
+        font-size: tokens.$font-size-lg;
+    }
+
+    .site-header__button {
+        min-height: 37px;
+        padding: tokens.$header-button-small-padding-block
+            tokens.$header-button-small-padding-inline;
+    }
+
+    .site-header__navigation,
+    .site-header__button--secondary {
+        display: none;
+    }
+}
+
+@media (max-width: 575px) {
+    .site-header__button {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-menu {
+        display: none;
+    }
+    .site-header,
+    .site-header__content {
+        height: tokens.$header-height-desktop;
+    }
+
+    .site-header__content {
+        padding-inline: tokens.$page-padding-desktop;
+    }
+
+    .site-logo {
+        font-size: tokens.$font-size-xl;
+    }
+
+    .site-header__navigation {
+        display: block;
+        margin-inline: auto;
+    }
+
+    .site-header__links {
+        display: flex;
+        gap: tokens.$header-nav-gap;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .site-header__link {
+        color: tokens.$color-text-secondary;
+        font-weight: tokens.$font-weight-medium;
+        text-decoration: none;
+        transition: color 160ms ease;
+    }
+
+    .site-header__link:hover,
+    .site-header__link--active {
+        color: tokens.$color-text;
+    }
+
+    .site-header__button {
+        min-height: tokens.$button-height-lg;
+        padding: tokens.$header-button-padding-block
+            tokens.$header-button-padding-inline;
+    }
+
+    .site-header__button--secondary {
+        display: inline-block;
+    }
+
+    .site-header__menu-button {
+        display: none;
+    }
+}
