@@ -16,10 +16,19 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: tokens.$size-5;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.library-cards__item {
+    display: flex;
+    min-width: 0;
 }
 
 .library-card {
     display: flex;
+    width: 100%;
     min-width: 0;
     flex-direction: column;
     overflow: hidden;

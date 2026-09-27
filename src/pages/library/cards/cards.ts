@@ -19,9 +19,8 @@ export const createLibraryCardsSection = (
     heading.id = 'library-cards-title';
     heading.textContent = 'All Games';
 
-    const list = document.createElement('div');
+    const list = document.createElement('ul');
     list.className = 'library-cards__grid';
-    list.setAttribute('role', 'list');
 
     for (const [index, game] of libraryGames.entries()) {
         const imageUrl = gameCardImages[`../assets/${game.slug}-card.jpg`];
@@ -29,9 +28,11 @@ export const createLibraryCardsSection = (
             throw new Error(`Missing card artwork for ${game.slug}`);
         }
 
+        const item = document.createElement('li');
+        item.className = 'library-cards__item';
+
         const card = document.createElement('article');
         card.className = 'library-card';
-        card.setAttribute('role', 'listitem');
 
         const image = document.createElement('img');
         image.className = 'library-card__image';
@@ -82,7 +83,8 @@ export const createLibraryCardsSection = (
 
         content.append(badges, title, description, metadata, details);
         card.append(image, content);
-        list.append(card);
+        item.append(card);
+        list.append(item);
     }
 
     section.append(heading, list);

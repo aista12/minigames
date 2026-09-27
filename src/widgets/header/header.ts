@@ -106,6 +106,7 @@ const createMobileMenu = (
 ): HTMLElement => {
     const menu = document.createElement('aside');
     menu.className = 'mobile-menu';
+    menu.id = 'mobile-navigation-menu';
     menu.setAttribute('aria-hidden', 'true');
     menu.setAttribute('aria-label', 'Mobile navigation');
     menu.setAttribute('role', 'dialog');
@@ -374,6 +375,8 @@ export const createHeader = (
     menuButton.className = 'site-header__menu-button';
     menuButton.type = 'button';
     menuButton.setAttribute('aria-label', 'Open navigation menu');
+    menuButton.setAttribute('aria-controls', 'mobile-navigation-menu');
+    menuButton.setAttribute('aria-expanded', 'false');
 
     const menuIcon = document.createElement('img');
     menuIcon.src = menuIconUrl;
@@ -381,13 +384,17 @@ export const createHeader = (
     menuButton.append(menuIcon);
 
     const mobileMenu = createMobileMenu(
-        () => menuButton.focus(),
+        () => {
+            menuButton.setAttribute('aria-expanded', 'false');
+            menuButton.focus();
+        },
         openAuthDialog,
         navigateToPage,
     );
     menuButton.addEventListener('click', () => {
         mobileMenu.classList.add('mobile-menu--open');
         mobileMenu.setAttribute('aria-hidden', 'false');
+        menuButton.setAttribute('aria-expanded', 'true');
         document.body.classList.add('mobile-menu-open');
         mobileMenu
             .querySelector<HTMLButtonElement>('.mobile-menu__close-button')
