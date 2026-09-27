@@ -4,14 +4,14 @@ Website with a collection of mini-games.
 
 Built with TypeScript, SCSS and Vite - no frameworks.
 
-## Run locally
+## run locally
 
 ```bash
 npm ci
 npm run dev
 ```
 
-## GitHub Pages deployment
+## gitHub pages deployment
 
 The `story-2` branch is built and deployed to GitHub Pages by the
 `.github/workflows/deploy-pages.yml` workflow. The workflow can also be started
@@ -23,5 +23,8 @@ Source → GitHub Actions**. After the workflow succeeds, the site is available 
 
 Production builds use `/minigames/` as their base path for this repository;
 the Vite development server continues to use `/` locally.
+
+
+
 
 branch story-1: deployed at: https://minigames1-hazel.vercel.app/
