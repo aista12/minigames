@@ -6,6 +6,7 @@ const images = import.meta.glob<string>(
 );
 
 const heroImage = Object.values(images)[0];
+const transitionDuration = 180;
 
 export type GameDetailsDialog = {
     element: HTMLDialogElement;
@@ -43,6 +44,8 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
     const favoriteButton = dialog.querySelector<HTMLButtonElement>(
         '.game-details__favorite',
     );
+    let closeTimer: number | undefined;
+
     const resetDialog = (): void => {
         favoriteButton?.setAttribute('aria-pressed', 'false');
         favoriteButton?.classList.remove('game-details__favorite--active');
@@ -53,11 +56,21 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
     };
 
     const closeDialog = (): void => {
-        if (dialog.open) {
-            dialog.close();
+        if (
+            !dialog.open ||
+            dialog.classList.contains('game-details--closing')
+        ) {
+            return;
         }
 
-        resetDialog();
+        dialog.classList.remove('game-details--visible');
+        dialog.classList.add('game-details--closing');
+        closeTimer = globalThis.setTimeout(() => {
+            dialog.close();
+            dialog.classList.remove('game-details--closing');
+            closeTimer = undefined;
+            resetDialog();
+        }, transitionDuration);
     };
 
     dialog
@@ -88,7 +101,7 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
         closeDialog();
     });
     dialog.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') {
+        if (event.key !== 'Escape' || !dialog.open) {
             return;
         }
 
@@ -100,13 +113,27 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
     return {
         element: dialog,
         open: () => {
-            if (dialog.open) {
+            if (
+                dialog.open &&
+                !dialog.classList.contains('game-details--closing')
+            ) {
                 return;
             }
 
+            if (closeTimer !== undefined) {
+                globalThis.clearTimeout(closeTimer);
+                closeTimer = undefined;
+            }
+
+            dialog.classList.remove('game-details--closing');
             resetDialog();
-            document.body.classList.add('game-details-open');
-            dialog.showModal();
+            if (!dialog.open) {
+                dialog.showModal();
+                document.body.classList.add('game-details-open');
+            }
+            globalThis.requestAnimationFrame(() => {
+                dialog.classList.add('game-details--visible');
+            });
         },
     };
 };
