@@ -19,10 +19,10 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
     dialog.setAttribute('aria-labelledby', 'game-details-title');
     dialog.innerHTML = `
         <div class="game-details__content">
-            <div class="game-details__hero">
-                <img class="game-details__image" src="${heroImage}" alt="Tukoni in a magical forest" />
+            <header class="game-details__hero">
+                <img class="game-details__image" src="${heroImage}" alt="Tukoni: Forest Keepers game cover" />
                 <button class="game-details__close" type="button" aria-label="Close game details">×</button>
-            </div>
+            </header>
             <section class="game-details__info" aria-labelledby="game-details-title">
                 <div class="game-details__eyebrow">PUZZLE ADVENTURE</div>
                 <h2 id="game-details-title">Tukoni: Forest Keepers</h2>
