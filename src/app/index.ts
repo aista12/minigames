@@ -1,10 +1,12 @@
 import '../shared/styles/globals.scss';
 import { createLibraryGamesSection } from '../pages/library/games-section/games-section';
+import { createLibraryCardsSection } from '../pages/library/cards/cards';
 import { createCarousel } from '../pages/home/carousel/carousel';
 import { createDeveloperCta } from '../pages/home/developer-cta/developer-cta';
 import { createFooter } from '../pages/home/footer/footer';
 import { createHero } from '../pages/home/hero/hero';
 import { createLeaderboard } from '../pages/home/leaderboard/leaderboard';
+import { createGameDetailsDialog } from '../widgets/game-details/game-details';
 import { createHeader, type SitePage } from '../widgets/header/header';
 
 const app = document.createElement('div');
@@ -12,6 +14,8 @@ const app = document.createElement('div');
 app.id = 'app';
 const main = document.createElement('main');
 const libraryGamesSection = createLibraryGamesSection();
+const gameDetailsDialog = createGameDetailsDialog();
+const libraryCardsSection = createLibraryCardsSection(gameDetailsDialog.open);
 
 const renderPage = (page: SitePage): void => {
     if (page === 'home') {
@@ -22,7 +26,7 @@ const renderPage = (page: SitePage): void => {
             createDeveloperCta(),
         );
     } else {
-        main.replaceChildren(libraryGamesSection);
+        main.replaceChildren(libraryGamesSection, libraryCardsSection);
     }
 
     for (const link of app.querySelectorAll<HTMLAnchorElement>(
@@ -39,6 +43,11 @@ const renderPage = (page: SitePage): void => {
 };
 
 renderPage('home');
-app.append(createHeader(renderPage), main, createFooter(renderPage));
+app.append(
+    createHeader(renderPage),
+    main,
+    createFooter(renderPage),
+    gameDetailsDialog.element,
+);
 
 document.body.append(app);
