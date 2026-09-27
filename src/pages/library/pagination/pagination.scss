@@ -1,0 +1,84 @@
+@use '../../../shared/styles/tokens' as tokens;
+
+.library-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: tokens.$size-2;
+    width: min(100%, tokens.$page-max-width);
+    margin: 0 auto;
+    padding: 0 tokens.$page-padding-mobile tokens.$size-10;
+}
+
+.library-pagination__pages {
+    display: flex;
+    align-items: center;
+    gap: tokens.$size-2;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.library-pagination__arrow,
+.library-pagination__page {
+    display: grid;
+    width: tokens.$button-height-md;
+    height: tokens.$button-height-md;
+    flex: 0 0 auto;
+    place-items: center;
+    border: tokens.$border-width-thin solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-md;
+    font-weight: tokens.$font-weight-medium;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+}
+
+.library-pagination__arrow:hover:not(:disabled),
+.library-pagination__page:hover {
+    border-color: tokens.$color-primary-active;
+    background-color: tokens.$color-primary;
+}
+
+.library-pagination__arrow:active:not(:disabled),
+.library-pagination__page:active {
+    transform: translateY(tokens.$interaction-offset);
+}
+
+.library-pagination__page--active {
+    border-color: tokens.$color-border;
+    background-color: tokens.$color-primary;
+    font-weight: tokens.$font-weight-bold;
+}
+
+.library-pagination__arrow:disabled {
+    background-color: tokens.$color-background;
+    color: tokens.$color-text-secondary;
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.library-pagination__arrow:focus-visible,
+.library-pagination__page:focus-visible {
+    outline: tokens.$border-width-strong solid tokens.$color-border;
+    outline-offset: tokens.$size-1;
+}
+
+@media (min-width: tokens.$breakpoint-tablet) {
+    .library-pagination {
+        padding-inline: tokens.$page-padding-tablet;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-desktop) {
+    .library-pagination {
+        padding-inline: tokens.$page-padding-desktop;
+    }
+}

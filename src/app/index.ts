@@ -1,6 +1,7 @@
 import '../shared/styles/globals.scss';
 import { createLibraryGamesSection } from '../pages/library/games-section/games-section';
 import { createLibraryCardsSection } from '../pages/library/cards/cards';
+import { createLibraryPagination } from '../pages/library/pagination/pagination';
 import { createCarousel } from '../pages/home/carousel/carousel';
 import { createDeveloperCta } from '../pages/home/developer-cta/developer-cta';
 import { createFooter } from '../pages/home/footer/footer';
@@ -16,6 +17,7 @@ const main = document.createElement('main');
 const libraryGamesSection = createLibraryGamesSection();
 const gameDetailsDialog = createGameDetailsDialog();
 const libraryCardsSection = createLibraryCardsSection(gameDetailsDialog.open);
+const libraryPagination = createLibraryPagination();
 
 const renderPage = (page: SitePage): void => {
     if (page === 'home') {
@@ -26,7 +28,11 @@ const renderPage = (page: SitePage): void => {
             createDeveloperCta(),
         );
     } else {
-        main.replaceChildren(libraryGamesSection, libraryCardsSection);
+        main.replaceChildren(
+            libraryGamesSection,
+            libraryCardsSection,
+            libraryPagination,
+        );
     }
 
     for (const link of app.querySelectorAll<HTMLAnchorElement>(
