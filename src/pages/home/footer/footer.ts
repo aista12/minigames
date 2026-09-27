@@ -9,6 +9,7 @@ const createLogo = (): HTMLAnchorElement => {
     const logo = document.createElement('a');
     logo.className = 'site-footer__logo';
     logo.href = homeLink;
+    logo.dataset.page = 'home';
     logo.setAttribute('aria-label', 'MiniGames home');
 
     const icon = document.createElement('span');
@@ -29,7 +30,7 @@ const createLogo = (): HTMLAnchorElement => {
 
 const createLinkList = (
     title: string,
-    links: string[],
+    links: Array<{ label: string; page: 'home' | 'library' }>,
     className: string,
 ): HTMLElement => {
     const group = document.createElement('div');
@@ -39,10 +40,11 @@ const createLinkList = (
     heading.textContent = title;
 
     const list = document.createElement('ul');
-    for (const label of links) {
+    for (const { label, page } of links) {
         const item = document.createElement('li');
         const link = document.createElement('a');
-        link.href = homeLink;
+        link.href = page === 'library' ? '#library' : homeLink;
+        link.dataset.page = page;
         link.textContent = label;
         item.append(link);
         list.append(item);
@@ -70,6 +72,7 @@ const createCommunity = (): HTMLElement => {
     for (const [icon, label] of socialItems) {
         const link = document.createElement('a');
         link.href = homeLink;
+        link.dataset.page = 'home';
         link.setAttribute('aria-label', label);
         link.innerHTML = `<span aria-hidden="true">${icon}</span>`;
         socialLinks.append(link);
@@ -99,9 +102,24 @@ const createCreditLink = (
     return link;
 };
 
-export const createFooter = (): HTMLElement => {
+export const createFooter = (
+    onNavigate: (page: 'home' | 'library') => void = () => {},
+): HTMLElement => {
     const footer = document.createElement('footer');
     footer.className = 'site-footer';
+    footer.addEventListener('click', (event) => {
+        const link =
+            event.target instanceof Element
+                ? event.target.closest<HTMLAnchorElement>('a[data-page]')
+                : undefined;
+        const page = link?.dataset.page;
+        if (page !== 'home' && page !== 'library') {
+            return;
+        }
+
+        event.preventDefault();
+        onNavigate(page);
+    });
 
     const top = document.createElement('div');
     top.className = 'site-footer__top';
@@ -119,12 +137,22 @@ export const createFooter = (): HTMLElement => {
     links.append(
         createLinkList(
             'Explore',
-            ['Home', 'Library', 'Categories', 'Tournaments'],
+            [
+                { label: 'Home', page: 'home' },
+                { label: 'Library', page: 'library' },
+                { label: 'Categories', page: 'home' },
+                { label: 'Tournaments', page: 'home' },
+            ],
             'site-footer__explore',
         ),
         createLinkList(
             'Company',
-            ['About Us', 'Contact', 'Privacy Policy', 'Terms of Service'],
+            [
+                { label: 'About Us', page: 'home' },
+                { label: 'Contact', page: 'home' },
+                { label: 'Privacy Policy', page: 'home' },
+                { label: 'Terms of Service', page: 'home' },
+            ],
             'site-footer__company',
         ),
         createCommunity(),
