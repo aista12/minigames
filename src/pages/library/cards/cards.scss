@@ -58,11 +58,13 @@
     flex: 1;
     flex-direction: column;
     align-items: flex-start;
+    min-width: 0;
     padding: tokens.$size-4;
 }
 
 .library-card__badges {
     display: flex;
+    justify-content: space-between;
     flex-wrap: wrap;
     gap: tokens.$size-2;
     margin-bottom: tokens.$size-3;
@@ -138,6 +140,61 @@
         transform 160ms ease;
 }
 
+@media (min-width: tokens.$breakpoint-tablet) {
+    .library-card {
+        flex-direction: row;
+    }
+
+    .library-card__image {
+        width: 34%;
+        flex: 0 0 34%;
+        aspect-ratio: auto;
+    }
+
+    .library-card__content {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            'badges badges'
+            'title title'
+            'description description'
+            'metadata details';
+        align-content: center;
+        align-items: center;
+        column-gap: tokens.$size-3;
+        padding: tokens.$size-3;
+    }
+
+    .library-card__badges {
+        grid-area: badges;
+    }
+
+    .library-card__title {
+        grid-area: title;
+    }
+
+    .library-card__description {
+        grid-area: description;
+        min-height: 3em;
+        -webkit-line-clamp: 2;
+    }
+
+    .library-card__metadata {
+        grid-area: metadata;
+        gap: tokens.$size-2;
+        margin-top: 0;
+        font-size: tokens.$font-size-xs;
+    }
+
+    .library-card__details {
+        grid-area: details;
+        width: auto;
+        min-height: tokens.$button-height-sm;
+        margin-top: 0;
+        padding-inline: tokens.$size-3;
+    }
+}
+
 .library-card__details:hover {
     background-color: tokens.$color-primary-hover;
 }
@@ -152,19 +209,12 @@
     outline-offset: tokens.$size-1;
 }
 
-@media (min-width: tokens.$breakpoint-mobile) {
-    .library-cards__grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
 @media (min-width: tokens.$breakpoint-tablet) {
     .library-cards {
         padding-inline: tokens.$page-padding-tablet;
     }
 
     .library-cards__grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: tokens.$size-6;
     }
 }
@@ -175,7 +225,7 @@
     }
 
     .library-cards__grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: tokens.$size-7;
     }
 }
