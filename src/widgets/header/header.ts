@@ -211,10 +211,7 @@ export const createHeader = (
     header.className = 'site-header';
 
     const updateActivePage = (page: SitePage): void => {
-        const updateLinks = (
-            selector: string,
-            activeClass: string,
-        ): void => {
+        const updateLinks = (selector: string, activeClass: string): void => {
             for (const link of header.querySelectorAll<HTMLAnchorElement>(
                 selector,
             )) {
@@ -224,8 +221,14 @@ export const createHeader = (
             }
         };
 
-        updateLinks('.site-header__link[data-page]', 'site-header__link--active');
-        updateLinks('.mobile-menu__link[data-page]', 'mobile-menu__link--active');
+        updateLinks(
+            '.site-header__link[data-page]',
+            'site-header__link--active',
+        );
+        updateLinks(
+            '.mobile-menu__link[data-page]',
+            'mobile-menu__link--active',
+        );
     };
     const navigateToPage = (page: SitePage): void => {
         updateActivePage(page);
