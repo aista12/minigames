@@ -38,11 +38,59 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
                     <button class="game-details__favorite" type="button" aria-pressed="false">♡ <span>Add to Favorites</span></button>
                 </div>
             </section>
+            <section class="game-details__records" aria-labelledby="game-details-records-title">
+                <h3 id="game-details-records-title">Top Records</h3>
+                <table class="game-details__records-table">
+                    <thead>
+                        <tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Best time</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td><span class="game-details__player-avatar" aria-hidden="true">L</span>Luna</td><td>02:14</td></tr>
+                        <tr><td>2</td><td><span class="game-details__player-avatar" aria-hidden="true">M</span>Mossy</td><td>02:38</td></tr>
+                        <tr><td>3</td><td><span class="game-details__player-avatar" aria-hidden="true">F</span>Fern</td><td>03:05</td></tr>
+                    </tbody>
+                </table>
+            </section>
+            <section class="game-details__comments" aria-labelledby="game-details-comments-title">
+                <h3 id="game-details-comments-title">Comments</h3>
+                <form class="game-details__comment-form">
+                    <label class="game-details__comment-label" for="game-details-comment">Share your thoughts</label>
+                    <div class="game-details__comment-compose">
+                        <textarea id="game-details-comment" class="game-details__comment-input" rows="1" placeholder="Write a comment..." aria-label="Write a comment"></textarea>
+                        <button class="game-details__comment-submit" type="submit">Submit</button>
+                    </div>
+                </form>
+                <ul class="game-details__comment-list" aria-label="Player comments">
+                    <li>
+                        <article class="game-details__comment">
+                            <div class="game-details__comment-avatar" aria-hidden="true">A</div>
+                            <div class="game-details__comment-body">
+                                <h4>Alex</h4>
+                                <p>A lovely little adventure. The art and puzzles are so relaxing!</p>
+                                <button class="game-details__like" type="button" aria-pressed="false" aria-label="Like Alex's comment"><span class="game-details__like-icon" aria-hidden="true">♡</span><span>12</span></button>
+                            </div>
+                        </article>
+                    </li>
+                    <li>
+                        <article class="game-details__comment">
+                            <div class="game-details__comment-avatar" aria-hidden="true">S</div>
+                            <div class="game-details__comment-body">
+                                <h4>Sam</h4>
+                                <p>Perfect for a cozy evening. I can't wait to explore more of the forest.</p>
+                                <button class="game-details__like" type="button" aria-pressed="false" aria-label="Like Sam's comment"><span class="game-details__like-icon" aria-hidden="true">♡</span><span>8</span></button>
+                            </div>
+                        </article>
+                    </li>
+                </ul>
+            </section>
         </div>
     `;
 
     const favoriteButton = dialog.querySelector<HTMLButtonElement>(
         '.game-details__favorite',
+    );
+    const commentInput = dialog.querySelector<HTMLTextAreaElement>(
+        '.game-details__comment-input',
     );
     let closeTimer: number | undefined;
 
@@ -51,6 +99,21 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
         favoriteButton?.classList.remove('game-details__favorite--active');
         if (favoriteButton) {
             favoriteButton.innerHTML = '♡ <span>Add to Favorites</span>';
+        }
+        for (const likeButton of dialog.querySelectorAll<HTMLButtonElement>(
+            '.game-details__like',
+        )) {
+            likeButton.setAttribute('aria-pressed', 'false');
+            likeButton.classList.remove('game-details__like--active');
+            const icon = likeButton.querySelector('.game-details__like-icon');
+            if (icon) {
+                icon.textContent = '♡';
+            }
+        }
+        if (commentInput) {
+            commentInput.value = '';
+            commentInput.style.height = '';
+            commentInput.style.overflowY = '';
         }
         document.body.classList.remove('game-details-open');
     };
@@ -88,6 +151,35 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
             ? '♡ <span>Add to Favorites</span>'
             : '♥ <span>Added to Favorites</span>';
     });
+
+    commentInput?.addEventListener('input', () => {
+        commentInput.style.height = 'auto';
+        const maxHeight = 88;
+        commentInput.style.height = `${Math.min(commentInput.scrollHeight, maxHeight)}px`;
+        commentInput.style.overflowY =
+            commentInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    });
+
+    dialog.querySelector('form')?.addEventListener('submit', (event) => {
+        event.preventDefault();
+    });
+
+    for (const likeButton of dialog.querySelectorAll<HTMLButtonElement>(
+        '.game-details__like',
+    )) {
+        likeButton.addEventListener('click', () => {
+            const isActive = likeButton.getAttribute('aria-pressed') === 'true';
+            likeButton.setAttribute('aria-pressed', String(!isActive));
+            likeButton.classList.toggle(
+                'game-details__like--active',
+                !isActive,
+            );
+            const icon = likeButton.querySelector('.game-details__like-icon');
+            if (icon) {
+                icon.textContent = isActive ? '♡' : '♥';
+            }
+        });
+    }
 
     dialog.addEventListener('click', (event) => {
         if (event.target !== dialog) {

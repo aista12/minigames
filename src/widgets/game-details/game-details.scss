@@ -86,6 +86,7 @@
 
 .game-details__info {
     padding: tokens.$size-6;
+    border-bottom: tokens.$border-width-thin solid rgb(36 33 69 / 18%);
 }
 
 .game-details__eyebrow {
@@ -202,9 +203,219 @@
 
 .game-details__close:focus-visible,
 .game-details__play:focus-visible,
-.game-details__favorite:focus-visible {
+.game-details__favorite:focus-visible,
+.game-details__comment-input:focus-visible,
+.game-details__comment-submit:focus-visible,
+.game-details__like:focus-visible {
     outline: tokens.$border-width-strong solid tokens.$color-border;
     outline-offset: tokens.$size-1;
+}
+
+.game-details__records,
+.game-details__comments {
+    padding: tokens.$size-6;
+}
+
+.game-details__records {
+    border-bottom: tokens.$border-width-thin solid rgb(36 33 69 / 18%);
+}
+
+.game-details__records h3,
+.game-details__comments h3 {
+    margin: 0 0 tokens.$size-4;
+    font-size: tokens.$font-size-lg;
+    line-height: 1.25;
+}
+
+.game-details__records-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: tokens.$font-size-sm;
+    text-align: left;
+}
+
+.game-details__records-table th {
+    padding: 0 tokens.$size-2 tokens.$size-2;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-xs;
+    font-weight: tokens.$font-weight-semibold;
+}
+
+.game-details__records-table td {
+    padding: tokens.$size-2;
+    border-top: tokens.$border-width-thin solid rgb(36 33 69 / 12%);
+    white-space: nowrap;
+}
+
+.game-details__records-table td:first-child,
+.game-details__records-table th:first-child {
+    width: 44px;
+    color: tokens.$color-text-secondary;
+}
+
+.game-details__records-table td:last-child,
+.game-details__records-table th:last-child {
+    text-align: right;
+}
+
+.game-details__records-table td:nth-child(2) {
+    vertical-align: middle;
+}
+
+.game-details__player-avatar,
+.game-details__comment-avatar {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: tokens.$radius-full;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    font-weight: tokens.$font-weight-bold;
+}
+
+.game-details__player-avatar {
+    display: inline-grid;
+    width: tokens.$button-height-sm;
+    height: tokens.$button-height-sm;
+    margin-right: tokens.$size-2;
+    vertical-align: middle;
+}
+
+.game-details__comments {
+    padding-bottom: tokens.$size-7;
+}
+
+.game-details__comment-form {
+    margin-bottom: tokens.$size-6;
+}
+
+.game-details__comment-label {
+    display: block;
+    margin-bottom: tokens.$size-2;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-medium;
+}
+
+.game-details__comment-compose {
+    display: flex;
+    align-items: flex-end;
+    gap: tokens.$size-2;
+}
+
+.game-details__comment-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: tokens.$button-height-md;
+    max-height: 88px;
+    padding: tokens.$size-2 tokens.$size-3;
+    overflow-y: hidden;
+    resize: none;
+    border: tokens.$border-width-thin solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text;
+    font: inherit;
+    line-height: 1.4;
+}
+
+.game-details__comment-input::placeholder {
+    color: tokens.$color-text-secondary;
+}
+
+.game-details__comment-input:focus-visible {
+    border-color: tokens.$color-primary-active;
+}
+
+.game-details__comment-submit {
+    min-height: tokens.$button-height-md;
+    flex: 0 0 auto;
+    padding: tokens.$size-2 tokens.$size-4;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-weight: tokens.$font-weight-bold;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.game-details__comment-submit:hover {
+    background-color: tokens.$color-primary-hover;
+}
+
+.game-details__comment-submit:active {
+    background-color: tokens.$color-primary-active;
+    transform: translateY(tokens.$interaction-offset);
+}
+
+.game-details__comment-list {
+    display: grid;
+    gap: tokens.$size-4;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.game-details__comment {
+    display: flex;
+    align-items: flex-start;
+    gap: tokens.$size-3;
+}
+
+.game-details__comment-avatar {
+    width: tokens.$size-8;
+    height: tokens.$size-8;
+}
+
+.game-details__comment-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.game-details__comment-body h4 {
+    margin: 0 0 tokens.$size-1;
+    font-size: tokens.$font-size-sm;
+}
+
+.game-details__comment-body p {
+    margin: 0;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-sm;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.game-details__like {
+    display: inline-flex;
+    align-items: center;
+    gap: tokens.$size-1;
+    margin-top: tokens.$size-2;
+    padding: tokens.$size-1 tokens.$size-2;
+    border: 0;
+    border-radius: tokens.$radius-full;
+    background: transparent;
+    color: tokens.$color-text-secondary;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-xs;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+}
+
+.game-details__like:hover,
+.game-details__like--active {
+    background-color: rgb(255 208 43 / 25%);
+    color: tokens.$color-text;
+}
+
+.game-details__like--active .game-details__like-icon {
+    color: tokens.$color-primary-active;
 }
 
 body.game-details-open {
@@ -230,6 +441,11 @@ body.game-details-open {
 
     .game-details__info {
         padding: tokens.$size-8;
+    }
+
+    .game-details__records,
+    .game-details__comments {
+        padding-inline: tokens.$size-8;
     }
 }
 
