@@ -18,16 +18,22 @@ const libraryGamesSection = createLibraryGamesSection();
 const gameDetailsDialog = createGameDetailsDialog();
 const libraryCardsSection = createLibraryCardsSection(gameDetailsDialog.open);
 const libraryPagination = createLibraryPagination();
+const homeCarouselState: {
+    current: ReturnType<typeof createCarousel> | undefined;
+} = { current: undefined };
 
 const renderPage = (page: SitePage): void => {
     if (page === 'home') {
+        homeCarouselState.current ??= createCarousel(gameDetailsDialog.open);
         main.replaceChildren(
             createHero(),
-            createCarousel(),
+            homeCarouselState.current,
             createLeaderboard(),
             createDeveloperCta(),
         );
     } else {
+        homeCarouselState.current?.destroy();
+        homeCarouselState.current = undefined;
         main.replaceChildren(
             libraryGamesSection,
             libraryCardsSection,
