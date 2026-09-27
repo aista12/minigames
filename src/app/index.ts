@@ -1,4 +1,5 @@
 import '../shared/styles/globals.scss';
+import { createLibraryGamesSection } from '../pages/library/games-section/games-section';
 import { createCarousel } from '../pages/home/carousel/carousel';
 import { createDeveloperCta } from '../pages/home/developer-cta/developer-cta';
 import { createFooter } from '../pages/home/footer/footer';
@@ -10,6 +11,7 @@ const app = document.createElement('div');
 
 app.id = 'app';
 const main = document.createElement('main');
+const libraryGamesSection = createLibraryGamesSection();
 
 const renderPage = (page: SitePage): void => {
     if (page === 'home') {
@@ -20,19 +22,7 @@ const renderPage = (page: SitePage): void => {
             createDeveloperCta(),
         );
     } else {
-        const libraryPlaceholder = document.createElement('section');
-        libraryPlaceholder.setAttribute(
-            'aria-labelledby',
-            'library-placeholder-title',
-        );
-        libraryPlaceholder.className = 'library-placeholder';
-
-        const title = document.createElement('h1');
-        title.id = 'library-placeholder-title';
-        title.textContent = 'Library';
-
-        libraryPlaceholder.append(title);
-        main.replaceChildren(libraryPlaceholder);
+        main.replaceChildren(libraryGamesSection);
     }
 
     for (const link of app.querySelectorAll<HTMLAnchorElement>(
