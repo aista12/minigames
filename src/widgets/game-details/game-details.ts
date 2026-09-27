@@ -56,7 +56,7 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
                 <form class="game-details__comment-form">
                     <label class="game-details__comment-label" for="game-details-comment">Share your thoughts</label>
                     <div class="game-details__comment-compose">
-                        <textarea id="game-details-comment" class="game-details__comment-input" rows="1" placeholder="Write a comment..." aria-label="Write a comment"></textarea>
+                        <textarea id="game-details-comment" class="game-details__comment-input" rows="1" placeholder="Write a comment..."></textarea>
                         <button class="game-details__comment-submit" type="submit">Submit</button>
                     </div>
                 </form>
