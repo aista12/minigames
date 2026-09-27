@@ -47,10 +47,7 @@ export const createLibraryGamesSection = (): HTMLElement => {
     sortButton.setAttribute('aria-haspopup', 'listbox');
     sortButton.setAttribute('aria-expanded', 'false');
     sortButton.setAttribute('aria-controls', 'library-sort-options');
-    sortButton.setAttribute(
-        'aria-label',
-        `Sort games: ${sortOptions[0]}`,
-    );
+    sortButton.setAttribute('aria-label', `Sort games: ${sortOptions[0]}`);
 
     const selectedSort = document.createElement('span');
     selectedSort.className = 'library-sort__value';
@@ -123,9 +120,7 @@ export const createLibraryGamesSection = (): HTMLElement => {
             return;
         }
 
-        const chip = target.closest<HTMLButtonElement>(
-            '.library-games__chip',
-        );
+        const chip = target.closest<HTMLButtonElement>('.library-games__chip');
         if (chip) {
             for (const categoryChip of categoryList.querySelectorAll<HTMLButtonElement>(
                 '.library-games__chip',
