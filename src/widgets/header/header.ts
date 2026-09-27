@@ -4,11 +4,13 @@ import menuIconUrl from '../../shared/assets/menu.svg';
 
 const homeLink = '#home';
 type AuthMode = 'login' | 'signup';
+export type SitePage = 'home' | 'library';
 
 const createLogo = (): HTMLAnchorElement => {
     const logo = document.createElement('a');
     logo.className = 'site-logo';
     logo.href = homeLink;
+    logo.dataset.page = 'home';
     logo.setAttribute('aria-label', 'MiniGames home');
     const icon = document.createElement('span');
     icon.className = 'site-logo__icon';
@@ -34,10 +36,10 @@ const createNavigation = (): HTMLElement => {
     navigation.setAttribute('aria-label', 'Primary navigation');
     navigation.innerHTML = `
         <ul class="site-header__links">
-            <li><a class="site-header__link site-header__link--active" href="#home" aria-current="page">Home</a></li>
-            <li><a class="site-header__link" href="#home">Library</a></li>
-            <li><a class="site-header__link" href="#home">Tournaments</a></li>
-            <li><a class="site-header__link" href="#home">Community</a></li>
+            <li><a class="site-header__link site-header__link--active" href="#home" data-page="home" aria-current="page">Home</a></li>
+            <li><a class="site-header__link" href="#library" data-page="library">Library</a></li>
+            <li><a class="site-header__link" href="#home" data-page="home">Tournaments</a></li>
+            <li><a class="site-header__link" href="#home" data-page="home">Community</a></li>
         </ul>
     `;
 
@@ -100,9 +102,11 @@ const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
 const createMobileMenu = (
     returnFocus: () => void,
     openAuthDialog: (mode: AuthMode) => void,
+    navigateToPage: (page: SitePage) => void,
 ): HTMLElement => {
     const menu = document.createElement('aside');
     menu.className = 'mobile-menu';
+    menu.id = 'mobile-navigation-menu';
     menu.setAttribute('aria-hidden', 'true');
     menu.setAttribute('aria-label', 'Mobile navigation');
     menu.setAttribute('role', 'dialog');
@@ -130,10 +134,10 @@ const createMobileMenu = (
     navigation.setAttribute('aria-label', 'Mobile navigation links');
     navigation.innerHTML = `
         <ul class="mobile-menu__links">
-            <li><a class="mobile-menu__link mobile-menu__link--active" href="#home" aria-current="page">Home</a></li>
-            <li><a class="mobile-menu__link" href="#home">Library</a></li>
-            <li><a class="mobile-menu__link" href="#home">Tournaments</a></li>
-            <li><a class="mobile-menu__link" href="#home">Community</a></li>
+            <li><a class="mobile-menu__link mobile-menu__link--active" href="#home" data-page="home" aria-current="page">Home</a></li>
+            <li><a class="mobile-menu__link" href="#library" data-page="library">Library</a></li>
+            <li><a class="mobile-menu__link" href="#home" data-page="home">Tournaments</a></li>
+            <li><a class="mobile-menu__link" href="#home" data-page="home">Community</a></li>
         </ul>
     `;
 
@@ -164,10 +168,19 @@ const createMobileMenu = (
     };
 
     closeButton.addEventListener('click', closeMenu);
-    navigation.addEventListener('click', (event) => {
-        if (event.target instanceof HTMLAnchorElement) {
-            closeMenu();
+    menu.addEventListener('click', (event) => {
+        const link =
+            event.target instanceof Element
+                ? event.target.closest<HTMLAnchorElement>('a[data-page]')
+                : undefined;
+        const page = link?.dataset.page;
+        if (page !== 'home' && page !== 'library') {
+            return;
         }
+
+        event.preventDefault();
+        closeMenu();
+        navigateToPage(page);
     });
 
     const openMobileAuthDialog = (mode: AuthMode): void => {
@@ -192,13 +205,53 @@ const createMobileMenu = (
     return menu;
 };
 
-export const createHeader = (): HTMLElement => {
+export const createHeader = (
+    onNavigate: (page: SitePage) => void = () => {},
+): HTMLElement => {
     const header = document.createElement('header');
     header.className = 'site-header';
+
+    const updateActivePage = (page: SitePage): void => {
+        const updateLinks = (selector: string, activeClass: string): void => {
+            for (const link of header.querySelectorAll<HTMLAnchorElement>(
+                selector,
+            )) {
+                const isActive = link.dataset.page === page;
+                link.classList.toggle(activeClass, isActive);
+                link.setAttribute('aria-current', isActive ? 'page' : 'false');
+            }
+        };
+
+        updateLinks(
+            '.site-header__link[data-page]',
+            'site-header__link--active',
+        );
+        updateLinks(
+            '.mobile-menu__link[data-page]',
+            'mobile-menu__link--active',
+        );
+    };
+    const navigateToPage = (page: SitePage): void => {
+        updateActivePage(page);
+        onNavigate(page);
+    };
 
     const content = document.createElement('div');
     content.className = 'site-header__content';
     content.append(createLogo(), createNavigation());
+    content.addEventListener('click', (event) => {
+        const link =
+            event.target instanceof Element
+                ? event.target.closest<HTMLAnchorElement>('a[data-page]')
+                : undefined;
+        const page = link?.dataset.page;
+        if (page !== 'home' && page !== 'library') {
+            return;
+        }
+
+        event.preventDefault();
+        navigateToPage(page);
+    });
 
     const dialog = createAuthDialog();
     let closeTimer: number | undefined;
@@ -322,6 +375,8 @@ export const createHeader = (): HTMLElement => {
     menuButton.className = 'site-header__menu-button';
     menuButton.type = 'button';
     menuButton.setAttribute('aria-label', 'Open navigation menu');
+    menuButton.setAttribute('aria-controls', 'mobile-navigation-menu');
+    menuButton.setAttribute('aria-expanded', 'false');
 
     const menuIcon = document.createElement('img');
     menuIcon.src = menuIconUrl;
@@ -329,12 +384,17 @@ export const createHeader = (): HTMLElement => {
     menuButton.append(menuIcon);
 
     const mobileMenu = createMobileMenu(
-        () => menuButton.focus(),
+        () => {
+            menuButton.setAttribute('aria-expanded', 'false');
+            menuButton.focus();
+        },
         openAuthDialog,
+        navigateToPage,
     );
     menuButton.addEventListener('click', () => {
         mobileMenu.classList.add('mobile-menu--open');
         mobileMenu.setAttribute('aria-hidden', 'false');
+        menuButton.setAttribute('aria-expanded', 'true');
         document.body.classList.add('mobile-menu-open');
         mobileMenu
             .querySelector<HTMLButtonElement>('.mobile-menu__close-button')

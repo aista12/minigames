@@ -1,0 +1,210 @@
+@use '../../../shared/styles/tokens' as tokens;
+
+.library-games {
+    width: min(100%, tokens.$page-max-width);
+    margin-inline: auto;
+    padding: tokens.$size-7 tokens.$page-padding-mobile;
+}
+
+.library-games__heading-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: tokens.$size-5;
+}
+
+.library-games__title {
+    margin: 0;
+    color: tokens.$color-text;
+    font-size: tokens.$font-size-2xl;
+    font-weight: tokens.$font-weight-bold;
+    line-height: 1.2;
+}
+
+.library-sort {
+    display: flex;
+    align-items: center;
+    gap: tokens.$size-3;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-sm;
+}
+
+.library-sort__label {
+    flex: 0 0 auto;
+}
+
+.library-sort__select {
+    position: relative;
+}
+
+.library-sort__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: tokens.$size-4;
+    min-width: tokens.$library-sort-control-width;
+    min-height: tokens.$button-height-md;
+    padding: tokens.$size-2 tokens.$size-4;
+    border: tokens.$border-width-thin solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-weight: tokens.$font-weight-medium;
+    text-align: left;
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.library-sort__trigger:hover {
+    border-color: tokens.$color-primary-active;
+}
+
+.library-sort__trigger:focus-visible,
+.library-sort__option:focus-visible,
+.library-games__chip:focus-visible {
+    outline: tokens.$border-width-strong solid tokens.$color-border;
+    outline-offset: tokens.$size-1;
+}
+
+.library-sort__arrow {
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-lg;
+    line-height: 1;
+    transition: transform 160ms ease;
+}
+
+.library-sort__trigger[aria-expanded='true'] .library-sort__arrow {
+    transform: rotate(180deg);
+}
+
+.library-sort__options {
+    position: absolute;
+    z-index: 2;
+    top: calc(100% + tokens.$size-2);
+    right: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    padding: tokens.$size-1;
+    border: tokens.$border-width-thin solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    box-shadow: tokens.$shadow-md;
+}
+
+.library-sort__options[hidden] {
+    display: none;
+}
+
+.library-sort__option {
+    min-height: tokens.$button-height-sm;
+    padding: tokens.$size-2 tokens.$size-3;
+    border: 0;
+    border-radius: tokens.$radius-sm;
+    background: transparent;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.library-sort__option:hover,
+.library-sort__option--selected {
+    background-color: tokens.$color-background;
+}
+
+.library-sort__option--selected {
+    color: tokens.$color-text;
+    font-weight: tokens.$font-weight-bold;
+}
+
+.library-games__category-scroller {
+    width: 100%;
+    margin-top: tokens.$size-6;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.library-games__category-scroller::-webkit-scrollbar {
+    display: none;
+}
+
+.library-games__categories {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: tokens.$size-3;
+    width: max-content;
+    min-width: 100%;
+}
+
+.library-games__chip {
+    flex: 0 0 auto;
+    min-height: tokens.$button-height-md;
+    padding: tokens.$size-2 tokens.$size-5;
+    border: tokens.$border-width-thin solid tokens.$color-border;
+    border-radius: tokens.$radius-full;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-medium;
+    white-space: nowrap;
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+}
+
+.library-games__chip:hover {
+    border-color: tokens.$color-primary-active;
+    background-color: tokens.$color-primary;
+}
+
+.library-games__chip:active {
+    transform: translateY(tokens.$interaction-offset);
+}
+
+.library-games__chip--active {
+    border-color: tokens.$color-border;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    font-weight: tokens.$font-weight-bold;
+}
+
+@media (min-width: tokens.$breakpoint-tablet) {
+    .library-games {
+        padding: tokens.$size-9 tokens.$page-padding-tablet;
+    }
+
+    .library-games__heading-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .library-games__category-scroller {
+        margin-top: tokens.$size-7;
+    }
+
+    .library-games__categories {
+        gap: tokens.$size-4;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-desktop) {
+    .library-games {
+        padding: tokens.$size-10 tokens.$page-padding-desktop;
+    }
+
+    .library-games__title {
+        font-size: tokens.$font-size-2xl;
+    }
+}
