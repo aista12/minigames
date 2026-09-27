@@ -24,7 +24,4 @@ Source → GitHub Actions**. After the workflow succeeds, the site is available 
 Production builds use `/minigames/` as their base path for this repository;
 the Vite development server continues to use `/` locally.
 
-
-
-
 branch story-1: deployed at: https://minigames1-hazel.vercel.app/
