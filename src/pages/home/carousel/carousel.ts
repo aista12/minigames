@@ -45,7 +45,7 @@ const formatLikes = (likesCount: number): string =>
 const createGameCard = (
     game: FeaturedGame,
     gameIndex: number,
-    openGameDetails: () => void,
+    openGameDetails: (gameSlug: string) => void,
 ): CarouselCard => {
     const card = Object.assign(document.createElement('article'), {
         gameIndex,
@@ -100,21 +100,21 @@ const createGameCard = (
     details.append(rating, likes);
     overlay.append(title, details);
     card.append(image, overlay);
-    card.addEventListener('click', openGameDetails);
+    card.addEventListener('click', () => openGameDetails(game.slug));
     card.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter' && event.key !== ' ') {
             return;
         }
 
         event.preventDefault();
-        openGameDetails();
+        openGameDetails(game.slug);
     });
 
     return card;
 };
 
 export const createCarousel = (
-    openGameDetails: () => void,
+    openGameDetails: (gameSlug: string) => void,
     snackbar: Snackbar,
 ): InteractiveCarousel => {
     const section = document.createElement('section') as InteractiveCarousel;
@@ -398,7 +398,7 @@ export const createCarousel = (
         pointerStartCard = undefined;
         resumeAutoplay();
         if (clickedCard) {
-            openGameDetails();
+            openGameDetails(games[clickedCard.gameIndex].slug);
         }
     };
 

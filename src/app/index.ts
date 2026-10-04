@@ -25,7 +25,7 @@ const app = document.createElement('div');
 app.id = 'app';
 const main = document.createElement('main');
 const snackbar = createSnackbar();
-const gameDetailsDialog = createGameDetailsDialog();
+const gameDetailsDialog = createGameDetailsDialog(snackbar);
 const libraryPagination: InteractiveLibraryPagination =
     createLibraryPagination();
 const libraryCardsSection: InteractiveLibraryCardsSection =
