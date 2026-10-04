@@ -1,4 +1,4 @@
-export type SitePage = 'home' | 'library';
+export type SitePage = 'home' | 'library' | 'not-found';
 export type AuthMode = 'login' | 'signup';
 
 export type AppRoute = {
@@ -41,8 +41,14 @@ export const readRoute = (
         ? pathname.slice(normalizedBase.length - 1)
         : pathname;
     const route = defaultRoute();
-    route.page =
-        appPath === '/library' || appPath === '/library/' ? 'library' : 'home';
+    if (['/', '/home', '/home/'].includes(appPath)) {
+        route.page = 'home';
+    } else if (appPath === '/library' || appPath === '/library/') {
+        route.page = 'library';
+    } else {
+        route.page = 'not-found';
+        return route;
+    }
 
     const parameters = new URLSearchParams(search);
     const category = parameters.get('category');

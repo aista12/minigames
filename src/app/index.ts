@@ -19,6 +19,7 @@ import {
 import { createGameDetailsDialog } from '../widgets/game-details/game-details';
 import { createHeader, type InteractiveHeader } from '../widgets/header/header';
 import { createSnackbar } from '../shared/snackbar';
+import { createNotFoundPage } from '../pages/not-found/not-found';
 import {
     defaultRoute,
     readRoute,
@@ -181,7 +182,7 @@ const renderPage = (page: SitePage): void => {
             homeLeaderboardState.current,
             createDeveloperCta(),
         );
-    } else {
+    } else if (page === 'library') {
         libraryGamesSection.load();
         homeCarouselState.current?.destroy();
         homeCarouselState.current = undefined;
@@ -192,6 +193,15 @@ const renderPage = (page: SitePage): void => {
             libraryCardsSection,
             libraryPagination,
         );
+    } else {
+        libraryGamesSection.destroy();
+        libraryCardsSection.destroy();
+        routerState.activeListKey = undefined;
+        homeCarouselState.current?.destroy();
+        homeCarouselState.current = undefined;
+        homeLeaderboardState.current?.destroy();
+        homeLeaderboardState.current = undefined;
+        main.replaceChildren(createNotFoundPage(() => navigatePage('home')));
     }
 
     routerState.renderedPage = page;
