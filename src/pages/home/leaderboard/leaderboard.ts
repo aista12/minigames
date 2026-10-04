@@ -1,62 +1,31 @@
 import './leaderboard.scss';
+import { fetchCollection } from '../../../shared/api';
+import type { Snackbar } from '../../../shared/snackbar';
 
 type Player = {
-    initials: string;
-    name: string;
-    games: string;
-    score: string;
-    mobileScore: string;
-    streak: string;
-    favoriteGame: string;
+    rank: number;
+    playerName: string;
+    gamesPlayed: number;
+    totalScore: number;
+    streakDays: number;
+    favoriteGameName: string;
 };
 
-const players: Player[] = [
-    {
-        initials: 'AP',
-        name: 'Alex_Pro99',
-        games: '142',
-        score: '94,250',
-        mobileScore: '94.2K',
-        streak: '12',
-        favoriteGame: 'Heartopia',
-    },
-    {
-        initials: 'CG',
-        name: 'CozyGamer_x',
-        games: '118',
-        score: '81,400',
-        mobileScore: '81.4K',
-        streak: '8',
-        favoriteGame: 'Cat Mail Co.',
-    },
-    {
-        initials: 'MM',
-        name: 'MatchMaster',
-        games: '98',
-        score: '72,110',
-        mobileScore: '72.1K',
-        streak: '5',
-        favoriteGame: 'Tiny Glade',
-    },
-    {
-        initials: 'BP',
-        name: 'BubblePop',
-        games: '87',
-        score: '65,900',
-        mobileScore: '65.9K',
-        streak: '3',
-        favoriteGame: 'Whisper of the House',
-    },
-    {
-        initials: 'SG',
-        name: 'SudokuGod',
-        games: '74',
-        score: '59,320',
-        mobileScore: '59.3K',
-        streak: '2',
-        favoriteGame: 'Cat Chess',
-    },
-];
+const isPlayer = (value: unknown): value is Player => {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+
+    const player = value as Record<string, unknown>;
+    return (
+        typeof player.rank === 'number' &&
+        typeof player.playerName === 'string' &&
+        typeof player.gamesPlayed === 'number' &&
+        typeof player.totalScore === 'number' &&
+        typeof player.streakDays === 'number' &&
+        typeof player.favoriteGameName === 'string'
+    );
+};
 
 const createCell = (
     content: string,
@@ -74,65 +43,57 @@ const createPlayerCell = (player: Player): HTMLTableCellElement => {
 
     const avatar = document.createElement('span');
     avatar.className = 'leaderboard__avatar';
-    avatar.textContent = player.initials;
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.textContent = player.playerName.slice(0, 2).toUpperCase();
 
     const name = document.createElement('span');
     name.className = 'leaderboard__player-name';
-    name.textContent = player.name;
+    name.textContent = player.playerName;
 
     cell.append(avatar, name);
     return cell;
 };
 
-const createPlayerRow = (
-    player: Player,
-    index: number,
-): HTMLTableRowElement => {
+const createPlayerRow = (player: Player): HTMLTableRowElement => {
     const row = document.createElement('tr');
-    row.className = `leaderboard__row leaderboard__row--${index + 1}`;
+    row.className = `leaderboard__row leaderboard__row--${player.rank}`;
     row.append(
-        createCell(`#${index + 1}`, 'leaderboard__rank'),
+        createCell(`#${player.rank}`, 'leaderboard__rank'),
         createPlayerCell(player),
-        createCell(player.games, 'leaderboard__games'),
+        createCell(String(player.gamesPlayed), 'leaderboard__games'),
     );
 
     const score = createCell('', 'leaderboard__score');
     const desktopScore = document.createElement('span');
     desktopScore.className = 'leaderboard__desktop-score';
-    desktopScore.textContent = player.score;
+    desktopScore.textContent = new Intl.NumberFormat('en').format(
+        player.totalScore,
+    );
     const mobileScore = document.createElement('span');
     mobileScore.className = 'leaderboard__mobile-score';
-    mobileScore.textContent = player.mobileScore;
+    mobileScore.textContent = new Intl.NumberFormat('en', {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+    }).format(player.totalScore);
     score.append(desktopScore, mobileScore);
     row.append(
         score,
-        createCell(`🔥 ${player.streak}d`, 'leaderboard__streak'),
+        createCell(`🔥 ${player.streakDays}d`, 'leaderboard__streak'),
+        createCell(player.favoriteGameName, 'leaderboard__favorite'),
     );
-    row.append(createCell(player.favoriteGame, 'leaderboard__favorite'));
 
     return row;
 };
 
-export const createLeaderboard = (): HTMLElement => {
-    const section = document.createElement('section');
-    section.className = 'leaderboard';
-    section.setAttribute('aria-labelledby', 'leaderboard-title');
-
-    const heading = document.createElement('header');
-    heading.className = 'leaderboard__header';
-
-    const accent = document.createElement('span');
-    accent.className = 'leaderboard__accent';
-    accent.setAttribute('aria-hidden', 'true');
-
-    const title = document.createElement('h2');
-    title.className = 'leaderboard__title';
-    title.id = 'leaderboard-title';
-    title.textContent = 'Top Players';
-    heading.append(accent, title);
-
+const createTable = (
+    players: Player[],
+    isLoading: boolean,
+): HTMLTableElement => {
     const table = document.createElement('table');
     table.className = 'leaderboard__table';
+    if (isLoading) {
+        table.setAttribute('aria-busy', 'true');
+    }
 
     const caption = document.createElement('caption');
     caption.className = 'visually-hidden';
@@ -167,14 +128,119 @@ export const createLeaderboard = (): HTMLElement => {
         headerRow.append(cell);
     }
 
-    thead.append(headerRow);
-
     const body = document.createElement('tbody');
-    for (const [index, player] of players.entries()) {
-        body.append(createPlayerRow(player, index));
+    if (isLoading) {
+        for (let index = 0; index < 3; index += 1) {
+            const row = document.createElement('tr');
+            row.className = 'leaderboard__skeleton-row';
+            for (let column = 0; column < headers.length; column += 1) {
+                const cell = document.createElement('td');
+                const placeholder = document.createElement('span');
+                placeholder.className = 'leaderboard__skeleton';
+                placeholder.setAttribute('aria-hidden', 'true');
+                cell.append(placeholder);
+                row.append(cell);
+            }
+            body.append(row);
+        }
+    } else {
+        for (const player of players) {
+            body.append(createPlayerRow(player));
+        }
     }
 
+    thead.append(headerRow);
     table.append(caption, thead, body);
-    section.append(heading, table);
+    return table;
+};
+
+export type InteractiveLeaderboard = HTMLElement & { destroy: () => void };
+
+export const createLeaderboard = (
+    snackbar: Snackbar,
+): InteractiveLeaderboard => {
+    const section = document.createElement('section') as InteractiveLeaderboard;
+    section.className = 'leaderboard';
+    section.setAttribute('aria-labelledby', 'leaderboard-title');
+
+    const heading = document.createElement('header');
+    heading.className = 'leaderboard__header';
+
+    const accent = document.createElement('span');
+    accent.className = 'leaderboard__accent';
+    accent.setAttribute('aria-hidden', 'true');
+
+    const title = document.createElement('h2');
+    title.className = 'leaderboard__title';
+    title.id = 'leaderboard-title';
+    title.textContent = 'Top Players';
+    heading.append(accent, title);
+
+    const content = document.createElement('div');
+    content.className = 'leaderboard__content';
+    content.setAttribute('aria-live', 'polite');
+    section.append(heading, content);
+
+    let controller: AbortController | undefined;
+    section.destroy = (): void => {
+        controller?.abort();
+    };
+
+    const loadLeaderboard = async (): Promise<void> => {
+        controller?.abort();
+        controller = new AbortController();
+        const requestController = controller;
+        content.replaceChildren(createTable([], true));
+
+        try {
+            const players = await fetchCollection(
+                '/leaderboard',
+                isPlayer,
+                requestController.signal,
+            );
+            if (requestController.signal.aborted) {
+                return;
+            }
+
+            if (players.length === 0) {
+                const empty = document.createElement('p');
+                empty.className =
+                    'leaderboard__state leaderboard__state--empty';
+                empty.textContent = 'No player scores are available right now.';
+                content.replaceChildren(empty);
+                return;
+            }
+
+            content.replaceChildren(createTable(players, false));
+        } catch {
+            if (requestController.signal.aborted) {
+                return;
+            }
+
+            const state = document.createElement('div');
+            state.className = 'leaderboard__state leaderboard__state--error';
+            state.setAttribute('role', 'alert');
+
+            const message = document.createElement('p');
+            message.textContent = 'The leaderboard could not be loaded.';
+
+            const retry = document.createElement('button');
+            retry.className = 'leaderboard__retry';
+            retry.type = 'button';
+            retry.textContent = 'Try again';
+            retry.addEventListener('click', () => {
+                void loadLeaderboard();
+            });
+
+            state.append(message, retry);
+            content.replaceChildren(state);
+            snackbar.show(
+                'Unable to load the leaderboard. Please try again.',
+                'error',
+            );
+        }
+    };
+
+    void loadLeaderboard();
     return section;
 };

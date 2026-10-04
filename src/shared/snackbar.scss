@@ -1,0 +1,42 @@
+@use './styles/tokens' as tokens;
+
+.snackbar {
+    position: fixed;
+    z-index: 1000;
+    right: tokens.$size-4;
+    bottom: tokens.$size-4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: tokens.$size-4;
+    width: min(420px, calc(100% - #{tokens.$size-8}));
+    padding: tokens.$size-4;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    box-shadow: tokens.$shadow-md;
+    color: tokens.$color-text;
+}
+
+.snackbar[hidden] {
+    display: none;
+}
+
+.snackbar--success {
+    border-left: 6px solid tokens.$color-success;
+}
+
+.snackbar--error {
+    border-left: 6px solid tokens.$color-error;
+}
+
+.snackbar__close {
+    flex: 0 0 auto;
+    padding: 0 tokens.$size-1;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-lg;
+}
