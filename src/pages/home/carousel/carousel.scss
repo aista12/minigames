@@ -95,6 +95,64 @@
     -webkit-user-select: none;
 }
 
+.carousel-skeleton,
+.carousel-state {
+    display: grid;
+    flex: 1 1 0;
+    min-width: 0;
+    place-content: center;
+    border: 2px solid tokens.$color-border;
+    border-radius: tokens.$radius-lg;
+    background-color: tokens.$color-surface;
+    text-align: center;
+}
+
+.carousel-skeleton {
+    height: 100%;
+    animation: carousel-pulse 1.2s ease-in-out infinite alternate;
+    background: linear-gradient(
+        100deg,
+        tokens.$color-surface 25%,
+        tokens.$color-background 45%,
+        tokens.$color-surface 65%
+    );
+    background-size: 200% 100%;
+}
+
+.carousel-state {
+    flex-direction: column;
+    gap: tokens.$size-2;
+    min-height: 100%;
+    padding: tokens.$size-4;
+    color: tokens.$color-text;
+}
+
+.carousel-state p {
+    margin: 0;
+}
+
+.carousel-state--error {
+    border-color: tokens.$color-error;
+}
+
+.carousel-state__retry {
+    justify-self: center;
+    padding: tokens.$size-2 tokens.$size-4;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-sm;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-weight: tokens.$font-weight-semibold;
+}
+
+@keyframes carousel-pulse {
+    to {
+        opacity: 0.5;
+    }
+}
+
 .carousel-card {
     container-type: inline-size;
     position: relative;
@@ -281,7 +339,9 @@
 
 @media (prefers-reduced-motion: reduce) {
     .carousel-card,
-    .carousel-section__control {
+    .carousel-section__control,
+    .carousel-skeleton {
         transition-duration: 1ms;
+        animation: none;
     }
 }
