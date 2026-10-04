@@ -1,7 +1,9 @@
 import './footer.scss';
 import brandLogoUrl from '../../../shared/assets/brand-logo.png';
+import { pageHref } from '../../../shared/router';
 
-const homeLink = '#home';
+const homeLink = pageHref('home', import.meta.env.BASE_URL);
+const libraryLink = pageHref('library', import.meta.env.BASE_URL);
 const githubLink = 'https://github.com/aista12';
 const rsSchoolLink = 'https://rs.school/courses/short-track';
 
@@ -43,7 +45,7 @@ const createLinkList = (
     for (const { label, page } of links) {
         const item = document.createElement('li');
         const link = document.createElement('a');
-        link.href = page === 'library' ? '#library' : homeLink;
+        link.href = page === 'library' ? libraryLink : homeLink;
         link.dataset.page = page;
         link.textContent = label;
         item.append(link);

@@ -41,6 +41,7 @@ const sortOptions = [
 
 export type InteractiveLibraryGamesSection = HTMLElement & {
     load: () => void;
+    setState: (category: string, sort: string) => void;
     destroy: () => void;
 };
 
@@ -201,6 +202,37 @@ export const createLibraryGamesSection = (
         }
     };
 
+    const renderSort = (): void => {
+        const selectedOption = sortOptions.find(
+            (option) => option.value === selectedSortValue,
+        );
+        if (!selectedOption) {
+            throw new Error(`Unsupported sort option: ${selectedSortValue}`);
+        }
+        selectedSort.textContent = selectedOption.label;
+        sortButton.setAttribute(
+            'aria-label',
+            `Sort games: ${selectedOption.label}`,
+        );
+        for (const optionButton of options.querySelectorAll<HTMLButtonElement>(
+            '.library-sort__option',
+        )) {
+            const isSelected = optionButton.dataset.sort === selectedSortValue;
+            optionButton.setAttribute('aria-pressed', String(isSelected));
+            optionButton.classList.toggle(
+                'library-sort__option--selected',
+                isSelected,
+            );
+        }
+    };
+
+    section.setState = (category, sortValue): void => {
+        selectedCategory = category;
+        selectedSortValue = sortValue;
+        renderCategories();
+        renderSort();
+    };
+
     section.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof Element)) {
@@ -307,9 +339,14 @@ export const createLibraryGamesSection = (
             }
 
             categories = response;
-            selectedCategory = defaults[0].slug;
+            if (
+                categories.every(
+                    (category) => category.slug !== selectedCategory,
+                )
+            ) {
+                selectedCategory = defaults[0].slug;
+            }
             renderCategories();
-            onFilterChange(selectedCategory, selectedSortValue);
         } catch {
             if (requestController.signal.aborted) {
                 return;

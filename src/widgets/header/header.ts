@@ -1,10 +1,14 @@
 import './header.scss';
 import brandLogoUrl from '../../shared/assets/brand-logo.png';
 import menuIconUrl from '../../shared/assets/menu.svg';
+import { pageHref, type AuthMode, type SitePage } from '../../shared/router';
 
-const homeLink = '#home';
-type AuthMode = 'login' | 'signup';
-export type SitePage = 'home' | 'library';
+const homeLink = pageHref('home', import.meta.env.BASE_URL);
+const libraryLink = pageHref('library', import.meta.env.BASE_URL);
+
+export type InteractiveHeader = HTMLElement & {
+    setAuthMode: (mode: AuthMode | undefined) => void;
+};
 
 const createLogo = (): HTMLAnchorElement => {
     const logo = document.createElement('a');
@@ -36,10 +40,10 @@ const createNavigation = (): HTMLElement => {
     navigation.setAttribute('aria-label', 'Primary navigation');
     navigation.innerHTML = `
         <ul class="site-header__links">
-            <li><a class="site-header__link site-header__link--active" href="#home" data-page="home" aria-current="page">Home</a></li>
-            <li><a class="site-header__link" href="#library" data-page="library">Library</a></li>
-            <li><a class="site-header__link" href="#home" data-page="home">Tournaments</a></li>
-            <li><a class="site-header__link" href="#home" data-page="home">Community</a></li>
+            <li><a class="site-header__link site-header__link--active" href="${homeLink}" data-page="home" aria-current="page">Home</a></li>
+            <li><a class="site-header__link" href="${libraryLink}" data-page="library">Library</a></li>
+            <li><a class="site-header__link" href="${homeLink}" data-page="home">Tournaments</a></li>
+            <li><a class="site-header__link" href="${homeLink}" data-page="home">Community</a></li>
         </ul>
     `;
 
@@ -134,10 +138,10 @@ const createMobileMenu = (
     navigation.setAttribute('aria-label', 'Mobile navigation links');
     navigation.innerHTML = `
         <ul class="mobile-menu__links">
-            <li><a class="mobile-menu__link mobile-menu__link--active" href="#home" data-page="home" aria-current="page">Home</a></li>
-            <li><a class="mobile-menu__link" href="#library" data-page="library">Library</a></li>
-            <li><a class="mobile-menu__link" href="#home" data-page="home">Tournaments</a></li>
-            <li><a class="mobile-menu__link" href="#home" data-page="home">Community</a></li>
+            <li><a class="mobile-menu__link mobile-menu__link--active" href="${homeLink}" data-page="home" aria-current="page">Home</a></li>
+            <li><a class="mobile-menu__link" href="${libraryLink}" data-page="library">Library</a></li>
+            <li><a class="mobile-menu__link" href="${homeLink}" data-page="home">Tournaments</a></li>
+            <li><a class="mobile-menu__link" href="${homeLink}" data-page="home">Community</a></li>
         </ul>
     `;
 
@@ -207,8 +211,9 @@ const createMobileMenu = (
 
 export const createHeader = (
     onNavigate: (page: SitePage) => void = () => {},
-): HTMLElement => {
-    const header = document.createElement('header');
+    onAuthChange?: (mode: AuthMode | undefined) => void,
+): InteractiveHeader => {
+    const header = document.createElement('header') as InteractiveHeader;
     header.className = 'site-header';
 
     const updateActivePage = (page: SitePage): void => {
@@ -287,10 +292,13 @@ export const createHeader = (
             closeTimer = undefined;
         }
 
+        const wasOpen = dialog.open;
         dialog.classList.remove('auth-dialog--closing');
         document.body.classList.add('auth-dialog-open');
-        setAuthMode(mode, false);
-        dialog.showModal();
+        setAuthMode(mode, wasOpen);
+        if (!wasOpen) {
+            dialog.showModal();
+        }
         requestAnimationFrame(() => {
             dialog.classList.add('auth-dialog--visible');
         });
@@ -318,6 +326,24 @@ export const createHeader = (
         }, 180);
     };
 
+    header.setAuthMode = (mode): void => {
+        if (mode) {
+            openAuthDialog(mode);
+            return;
+        }
+        closeAuthDialog();
+    };
+
+    const requestAuthChange = (mode: AuthMode | undefined): void => {
+        if (onAuthChange) {
+            onAuthChange(mode);
+        } else if (mode) {
+            openAuthDialog(mode);
+        } else {
+            closeAuthDialog();
+        }
+    };
+
     dialog.addEventListener('click', (event) => {
         const switchTarget =
             event.target instanceof Element
@@ -326,7 +352,7 @@ export const createHeader = (
         const nextMode = switchTarget?.dataset.authMode;
         if (nextMode === 'login' || nextMode === 'signup') {
             event.preventDefault();
-            setAuthMode(nextMode, true);
+            requestAuthChange(nextMode);
             return;
         }
 
@@ -334,17 +360,17 @@ export const createHeader = (
             event.target instanceof HTMLButtonElement &&
             event.target.classList.contains('auth-dialog__close')
         ) {
-            closeAuthDialog();
+            requestAuthChange(undefined);
             return;
         }
 
         if (event.target === dialog) {
-            closeAuthDialog();
+            requestAuthChange(undefined);
         }
     });
     dialog.addEventListener('cancel', (event) => {
         event.preventDefault();
-        closeAuthDialog();
+        requestAuthChange(undefined);
     });
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' || !dialog.open) {
@@ -352,7 +378,7 @@ export const createHeader = (
         }
 
         event.preventDefault();
-        closeAuthDialog();
+        requestAuthChange(undefined);
     });
 
     const actions = document.createElement('div');
@@ -363,13 +389,13 @@ export const createHeader = (
         'site-header__button site-header__button--secondary';
     logInButton.type = 'button';
     logInButton.textContent = 'Log In';
-    logInButton.addEventListener('click', () => openAuthDialog('login'));
+    logInButton.addEventListener('click', () => requestAuthChange('login'));
 
     const signUpButton = document.createElement('button');
     signUpButton.className = 'site-header__button site-header__button--primary';
     signUpButton.type = 'button';
     signUpButton.textContent = 'Sign Up';
-    signUpButton.addEventListener('click', () => openAuthDialog('signup'));
+    signUpButton.addEventListener('click', () => requestAuthChange('signup'));
 
     const menuButton = document.createElement('button');
     menuButton.className = 'site-header__menu-button';
@@ -388,7 +414,7 @@ export const createHeader = (
             menuButton.setAttribute('aria-expanded', 'false');
             menuButton.focus();
         },
-        openAuthDialog,
+        requestAuthChange,
         navigateToPage,
     );
     menuButton.addEventListener('click', () => {
