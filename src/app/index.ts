@@ -4,7 +4,10 @@ import {
     createLibraryCardsSection,
     type InteractiveLibraryCardsSection,
 } from '../pages/library/cards/cards';
-import { createLibraryPagination } from '../pages/library/pagination/pagination';
+import {
+    createLibraryPagination,
+    type InteractiveLibraryPagination,
+} from '../pages/library/pagination/pagination';
 import { createCarousel } from '../pages/home/carousel/carousel';
 import { createDeveloperCta } from '../pages/home/developer-cta/developer-cta';
 import { createFooter } from '../pages/home/footer/footer';
@@ -23,13 +26,19 @@ app.id = 'app';
 const main = document.createElement('main');
 const snackbar = createSnackbar();
 const gameDetailsDialog = createGameDetailsDialog();
+const libraryPagination: InteractiveLibraryPagination =
+    createLibraryPagination();
 const libraryCardsSection: InteractiveLibraryCardsSection =
-    createLibraryCardsSection(gameDetailsDialog.open, snackbar);
+    createLibraryCardsSection(
+        gameDetailsDialog.open,
+        snackbar,
+        (page, totalPages) => libraryPagination.update(page, totalPages),
+    );
+libraryPagination.setPageChangeHandler(libraryCardsSection.loadPage);
 const libraryGamesSection = createLibraryGamesSection(
     (category, sort) => libraryCardsSection.load(category, sort),
     snackbar,
 );
-const libraryPagination = createLibraryPagination();
 const homeCarouselState: {
     current: ReturnType<typeof createCarousel> | undefined;
 } = { current: undefined };

@@ -1,5 +1,5 @@
 import './cards.scss';
-import { API_BASE_URL, fetchCollection } from '../../../shared/api';
+import { API_BASE_URL, fetchPaginatedCollection } from '../../../shared/api';
 import type { Snackbar } from '../../../shared/snackbar';
 
 type LibraryGame = {
@@ -41,6 +41,7 @@ const cardsPerPage = 6;
 
 export type InteractiveLibraryCardsSection = HTMLElement & {
     load: (category: string, sort: string) => void;
+    loadPage: (page: number) => void;
     destroy: () => void;
 };
 
@@ -156,6 +157,7 @@ const createSkeletonCard = (): HTMLLIElement => {
 export const createLibraryCardsSection = (
     openGameDetails: () => void,
     snackbar: Snackbar,
+    onPaginationUpdate: (page: number, totalPages: number) => void,
 ): InteractiveLibraryCardsSection => {
     const section = document.createElement(
         'section',
@@ -177,9 +179,19 @@ export const createLibraryCardsSection = (
     let controller: AbortController | undefined;
     let selectedCategory = 'all';
     let selectedSort = 'rating-desc';
+    let selectedPage = 1;
     section.load = (category, sort): void => {
         selectedCategory = category;
         selectedSort = sort;
+        selectedPage = 1;
+        void loadGames();
+    };
+    section.loadPage = (page): void => {
+        if (page === selectedPage || page < 1 || !Number.isSafeInteger(page)) {
+            return;
+        }
+
+        selectedPage = page;
         void loadGames();
     };
     section.destroy = (): void => {
@@ -224,11 +236,11 @@ export const createLibraryCardsSection = (
         showLoading();
 
         try {
-            const games = await fetchCollection(
+            const response = await fetchPaginatedCollection(
                 `/games?${new URLSearchParams({
                     category: selectedCategory,
                     sort: selectedSort,
-                    page: '1',
+                    page: String(selectedPage),
                     limit: String(cardsPerPage),
                 })}`,
                 isLibraryGame,
@@ -238,22 +250,33 @@ export const createLibraryCardsSection = (
                 return;
             }
 
+            selectedPage = response.page;
+            onPaginationUpdate(response.page, Math.max(response.totalPages, 1));
+
             list.removeAttribute('aria-busy');
-            if (games.length === 0) {
+            if (response.items.length === 0) {
                 const item = document.createElement('li');
                 item.className = 'library-cards__state-item';
 
-                const empty = document.createElement('p');
+                const empty = document.createElement('div');
                 empty.className =
                     'library-cards__state library-cards__state--empty';
-                empty.textContent = 'No games are available right now.';
+                empty.setAttribute('role', 'status');
+
+                const title = document.createElement('h3');
+                title.textContent = 'Data Not Found';
+
+                const message = document.createElement('p');
+                message.textContent =
+                    'No games match the selected filters on this page.';
+                empty.append(title, message);
                 item.append(empty);
                 list.replaceChildren(item);
                 return;
             }
 
             list.replaceChildren(
-                ...games.map((game, index) =>
+                ...response.items.map((game, index) =>
                     createCard(game, index, openGameDetails),
                 ),
             );
