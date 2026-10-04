@@ -49,6 +49,83 @@
     border-radius: inherit;
 }
 
+.game-details__body[aria-busy='true'] {
+    min-height: 360px;
+}
+
+.game-details__state {
+    display: grid;
+    min-height: 280px;
+    align-content: center;
+    justify-items: center;
+    gap: tokens.$size-3;
+    padding: tokens.$size-8;
+    text-align: center;
+}
+
+.game-details__state h2,
+.game-details__state p {
+    margin: 0;
+}
+
+.game-details__state p {
+    color: tokens.$color-text-secondary;
+}
+
+.game-details__skeleton {
+    display: block;
+    width: 100%;
+    height: 16px;
+    border-radius: tokens.$radius-full;
+    background: linear-gradient(
+        90deg,
+        tokens.$color-surface,
+        rgb(255 255 255 / 75%),
+        tokens.$color-surface
+    );
+    background-size: 200% 100%;
+    animation: game-details-skeleton 1.2s ease-in-out infinite;
+}
+
+.game-details__skeleton--title {
+    width: 65%;
+    height: 28px;
+}
+
+.game-details__skeleton--short {
+    width: 45%;
+}
+
+.game-details__skeleton--block {
+    height: 110px;
+    border-radius: tokens.$radius-md;
+}
+
+.game-details__retry {
+    min-height: tokens.$button-height-md;
+    padding: tokens.$size-2 tokens.$size-4;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-weight: tokens.$font-weight-bold;
+}
+
+.game-details__summary {
+    display: flex;
+    gap: tokens.$size-4;
+    margin-top: tokens.$size-3;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-sm;
+}
+
+.game-details__records-table td:last-child,
+.game-details__records-table th:last-child {
+    text-align: left;
+}
+
 .game-details__hero {
     position: relative;
     height: tokens.$game-details-hero-height-mobile;
@@ -324,8 +401,19 @@
     color: tokens.$color-text-secondary;
 }
 
+.game-details__comment-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 .game-details__comment-input:focus-visible {
     border-color: tokens.$color-primary-active;
+}
+
+.game-details__comment-note {
+    margin: tokens.$size-2 0 0;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-xs;
 }
 
 .game-details__comment-submit {
@@ -342,6 +430,11 @@
     transition:
         background-color 160ms ease,
         transform 160ms ease;
+}
+
+.game-details__comment-submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
 }
 
 .game-details__comment-submit:hover {
@@ -390,6 +483,49 @@
     overflow-wrap: anywhere;
 }
 
+.game-details__comment-body h4 {
+    display: inline;
+    margin-right: tokens.$size-2;
+}
+
+.game-details__comment-time {
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-xs;
+}
+
+.game-details__comment-likes {
+    display: inline-block;
+    margin-top: tokens.$size-2;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-xs;
+}
+
+.game-details__comment-skeleton {
+    min-height: 92px;
+    border-radius: tokens.$radius-md;
+    background: linear-gradient(
+        90deg,
+        tokens.$color-surface,
+        rgb(255 255 255 / 75%),
+        tokens.$color-surface
+    );
+    background-size: 200% 100%;
+    animation: game-details-skeleton 1.2s ease-in-out infinite;
+}
+
+.game-details__comments-empty,
+.game-details__comments-error {
+    padding: tokens.$size-4;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text-secondary;
+    text-align: center;
+}
+
+.game-details__comments-error p {
+    margin: 0 0 tokens.$size-3;
+}
+
 .game-details__like {
     display: inline-flex;
     align-items: center;
@@ -426,6 +562,20 @@ body.game-details-open {
     .game-details,
     .game-details::backdrop {
         transition-duration: 1ms;
+    }
+
+    .game-details__skeleton {
+        animation: none;
+    }
+
+    .game-details__comment-skeleton {
+        animation: none;
+    }
+}
+
+@keyframes game-details-skeleton {
+    to {
+        background-position: -200% 0;
     }
 }
 

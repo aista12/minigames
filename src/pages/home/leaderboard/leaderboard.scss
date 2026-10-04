@@ -46,6 +46,10 @@
     overflow: hidden;
 }
 
+.leaderboard__content {
+    min-height: 216px;
+}
+
 .leaderboard__table th,
 .leaderboard__table td {
     padding: 0 tokens.$size-2;
@@ -73,6 +77,58 @@
 
 .leaderboard__row:nth-child(n + 4) {
     display: none;
+}
+
+.leaderboard__skeleton-row td {
+    height: 56px;
+}
+
+.leaderboard__skeleton {
+    display: block;
+    width: 72%;
+    height: 14px;
+    margin-inline: auto;
+    border-radius: tokens.$radius-sm;
+    animation: leaderboard-pulse 1.2s ease-in-out infinite alternate;
+    background-color: rgb(36 33 69 / 12%);
+}
+
+.leaderboard__state {
+    display: grid;
+    min-height: 216px;
+    place-content: center;
+    gap: tokens.$size-2;
+    padding: tokens.$size-4;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    text-align: center;
+}
+
+.leaderboard__state p {
+    margin: 0;
+}
+
+.leaderboard__state--error {
+    border-color: tokens.$color-error;
+}
+
+.leaderboard__retry {
+    justify-self: center;
+    padding: tokens.$size-2 tokens.$size-4;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-sm;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-weight: tokens.$font-weight-semibold;
+}
+
+@keyframes leaderboard-pulse {
+    to {
+        opacity: 0.45;
+    }
 }
 
 .leaderboard__rank {
@@ -221,6 +277,11 @@
         font-size: tokens.$font-size-md;
     }
 
+    .leaderboard__content,
+    .leaderboard__state {
+        min-height: 427px;
+    }
+
     .leaderboard__table th {
         height: 67px;
         background-color: tokens.$color-footer-surface;
@@ -282,5 +343,11 @@
     .leaderboard__mobile-score,
     .leaderboard__mobile-label {
         display: inline;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .leaderboard__skeleton {
+        animation: none;
     }
 }

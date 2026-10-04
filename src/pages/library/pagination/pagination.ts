@@ -1,11 +1,18 @@
 import './pagination.scss';
 
-const totalPages = 10;
 const mobilePageLimit = 3;
 const desktopPageLimit = 4;
 
-export const createLibraryPagination = (): HTMLElement => {
-    const navigation = document.createElement('nav');
+export type InteractiveLibraryPagination = HTMLElement & {
+    setPageChangeHandler: (handler: (page: number) => void) => void;
+    setPage: (page: number) => void;
+    update: (page: number, totalPages: number) => void;
+};
+
+export const createLibraryPagination = (): InteractiveLibraryPagination => {
+    const navigation = document.createElement(
+        'nav',
+    ) as InteractiveLibraryPagination;
     navigation.className = 'library-pagination';
     navigation.setAttribute('aria-label', 'Library pages');
 
@@ -26,6 +33,8 @@ export const createLibraryPagination = (): HTMLElement => {
     nextButton.textContent = '›';
 
     let activePage = 1;
+    let totalPages = 1;
+    let onPageChange: ((page: number) => void) | undefined;
 
     const render = (shouldFocusActivePage = false): void => {
         const pageLimit =
@@ -36,8 +45,8 @@ export const createLibraryPagination = (): HTMLElement => {
             totalPages - visiblePageCount + 1,
         );
 
-        previousButton.disabled = activePage === 1;
-        nextButton.disabled = activePage === totalPages;
+        previousButton.disabled = activePage <= 1;
+        nextButton.disabled = activePage >= totalPages;
         pageList.replaceChildren();
 
         for (
@@ -73,22 +82,29 @@ export const createLibraryPagination = (): HTMLElement => {
         }
     };
 
-    previousButton.addEventListener('click', () => {
-        if (activePage <= 1) {
-            return;
-        }
+    navigation.update = (page, pageCount): void => {
+        totalPages = Math.max(1, pageCount);
+        activePage = Math.min(Math.max(page, 1), totalPages);
+        render();
+    };
+    navigation.setPageChangeHandler = (handler): void => {
+        onPageChange = handler;
+    };
+    navigation.setPage = (page): void => {
+        activePage = Math.min(Math.max(page, 1), totalPages);
+        render();
+    };
 
-        activePage -= 1;
-        render(true);
+    previousButton.addEventListener('click', () => {
+        if (activePage > 1) {
+            onPageChange?.(activePage - 1);
+        }
     });
 
     nextButton.addEventListener('click', () => {
-        if (activePage >= totalPages) {
-            return;
+        if (activePage < totalPages) {
+            onPageChange?.(activePage + 1);
         }
-
-        activePage += 1;
-        render(true);
     });
 
     pageList.addEventListener('click', (event) => {
@@ -104,8 +120,10 @@ export const createLibraryPagination = (): HTMLElement => {
             return;
         }
 
-        activePage = Number(button.textContent);
-        render(true);
+        const page = Number(button.textContent);
+        if (page !== activePage) {
+            onPageChange?.(page);
+        }
     });
 
     globalThis.addEventListener('resize', () => render());

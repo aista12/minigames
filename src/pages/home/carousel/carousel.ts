@@ -1,40 +1,34 @@
 import './carousel.scss';
-import {
-    libraryGames,
-    type LibraryGame,
-} from '../../library/games-section/games';
+import { API_BASE_URL, fetchCollection } from '../../../shared/api';
+import type { Snackbar } from '../../../shared/snackbar';
 
-const gameCardImages = import.meta.glob<string>(
+type FeaturedGame = {
+    slug: string;
+    name: string;
+    rating: number;
+    likesCount: number;
+    cardImage: string;
+};
+
+const localGameCardImages = import.meta.glob<string>(
     '../../library/assets/*-card.jpg',
     { eager: true, query: '?url', import: 'default' },
 );
 
-const featuredGameSlugs = [
-    'vacation-cafe-simulator',
-    'winter-burrow',
-    'shelve-the-potions',
-    'heartopia',
-    'palia',
-    'cat-mail-co',
-    'tiny-glade',
-    'tailside-cozy-cafe-sim',
-    'islanders-new-shores',
-];
+const isFeaturedGame = (value: unknown): value is FeaturedGame => {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
 
-const games = featuredGameSlugs.map(
-    (slug): LibraryGame & { imageUrl: string } => {
-        const game = libraryGames.find((item) => item.slug === slug);
-        const imageUrl =
-            gameCardImages[`../../library/assets/${slug}-card.jpg`];
-        if (!game || !imageUrl) {
-            throw new Error(
-                `Missing featured carousel game or artwork: ${slug}`,
-            );
-        }
-
-        return { ...game, imageUrl };
-    },
-);
+    const game = value as Record<string, unknown>;
+    return (
+        typeof game.slug === 'string' &&
+        typeof game.name === 'string' &&
+        typeof game.rating === 'number' &&
+        typeof game.likesCount === 'number' &&
+        typeof game.cardImage === 'string'
+    );
+};
 
 const autoplayDuration = 4000;
 const swipeThreshold = 40;
@@ -49,9 +43,9 @@ const formatLikes = (likesCount: number): string =>
     }).format(likesCount);
 
 const createGameCard = (
-    game: (typeof games)[number],
+    game: FeaturedGame,
     gameIndex: number,
-    openGameDetails: () => void,
+    openGameDetails: (gameSlug: string) => void,
 ): CarouselCard => {
     const card = Object.assign(document.createElement('article'), {
         gameIndex,
@@ -66,7 +60,20 @@ const createGameCard = (
 
     const image = document.createElement('img');
     image.className = 'carousel-card__image';
-    image.src = game.imageUrl;
+    image.addEventListener(
+        'error',
+        () => {
+            const localImage =
+                localGameCardImages[
+                    `../../library/assets/${game.slug}-card.jpg`
+                ];
+            if (localImage) {
+                image.src = localImage;
+            }
+        },
+        { once: true },
+    );
+    image.src = new URL(game.cardImage, API_BASE_URL).href;
     image.alt = '';
     image.draggable = false;
 
@@ -79,40 +86,38 @@ const createGameCard = (
 
     const details = document.createElement('div');
     details.className = 'carousel-card__details';
-    details.innerHTML = `
-        <span class="carousel-card__rating"><span aria-hidden="true">★</span>${game.rating.toFixed(1)}</span>
-        <span class="carousel-card__likes"><span aria-hidden="true">♡</span>${formatLikes(game.likesCount)}</span>
-    `;
 
+    const rating = document.createElement('span');
+    rating.className = 'carousel-card__rating';
+    rating.innerHTML = '<span aria-hidden="true">★</span>';
+    rating.append(document.createTextNode(game.rating.toFixed(1)));
+
+    const likes = document.createElement('span');
+    likes.className = 'carousel-card__likes';
+    likes.innerHTML = '<span aria-hidden="true">♡</span>';
+    likes.append(document.createTextNode(formatLikes(game.likesCount)));
+
+    details.append(rating, likes);
     overlay.append(title, details);
     card.append(image, overlay);
-    card.addEventListener('click', openGameDetails);
+    card.addEventListener('click', () => openGameDetails(game.slug));
     card.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter' && event.key !== ' ') {
             return;
         }
 
         event.preventDefault();
-        openGameDetails();
+        openGameDetails(game.slug);
     });
 
     return card;
 };
 
 export const createCarousel = (
-    openGameDetails: () => void,
+    openGameDetails: (gameSlug: string) => void,
+    snackbar: Snackbar,
 ): InteractiveCarousel => {
-    const section = Object.assign(document.createElement('section'), {
-        destroy: (): void => {
-            clearTimer();
-            globalThis.removeEventListener('resize', render);
-            globalThis.removeEventListener('pointerup', handlePointerUp);
-            globalThis.removeEventListener(
-                'pointercancel',
-                handlePointerCancel,
-            );
-        },
-    });
+    const section = document.createElement('section') as InteractiveCarousel;
     section.className = 'carousel-section';
     section.setAttribute('aria-labelledby', 'new-games-title');
 
@@ -159,12 +164,10 @@ export const createCarousel = (
     track.setAttribute('aria-label', 'Featured games');
     track.setAttribute('aria-roledescription', 'carousel');
 
-    const cards = games.map((game, index) =>
-        createGameCard(game, index, openGameDetails),
-    );
-    track.append(...cards);
+    const cards: CarouselCard[] = [];
     section.append(header, track);
 
+    let games: FeaturedGame[] = [];
     let centerIndex = 0;
     let timer: number | undefined;
     let timerDeadline = 0;
@@ -174,6 +177,7 @@ export const createCarousel = (
     let pointerStartY = 0;
     let pointerStartCard: CarouselCard | undefined;
     let shouldSuppressCardClick = false;
+    let controller: AbortController | undefined;
 
     const visibleRange = (): number => (globalThis.innerWidth >= 1280 ? 2 : 1);
 
@@ -216,6 +220,10 @@ export const createCarousel = (
 
     const scheduleAutoplay = (delay: number): void => {
         clearTimer();
+        if (games.length < 2) {
+            return;
+        }
+
         remainingDuration = delay;
         timerDeadline = globalThis.performance.now() + delay;
         timer = globalThis.setTimeout(() => {
@@ -243,9 +251,101 @@ export const createCarousel = (
     };
 
     const move = (direction: -1 | 1): void => {
+        if (games.length < 2) {
+            return;
+        }
+
         centerIndex = (centerIndex + direction + games.length) % games.length;
         render();
         resumeAutoplay(true);
+    };
+
+    const showLoading = (): void => {
+        track.setAttribute('aria-busy', 'true');
+        const placeholders = Array.from({ length: 3 }, () => {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'carousel-skeleton';
+            placeholder.setAttribute('aria-hidden', 'true');
+            return placeholder;
+        });
+        track.replaceChildren(...placeholders);
+    };
+
+    const showError = (): void => {
+        const state = document.createElement('div');
+        state.className = 'carousel-state carousel-state--error';
+        state.setAttribute('role', 'alert');
+
+        const message = document.createElement('p');
+        message.textContent = 'Featured games could not be loaded.';
+
+        const retry = document.createElement('button');
+        retry.className = 'carousel-state__retry';
+        retry.type = 'button';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', () => {
+            void loadFeaturedGames();
+        });
+
+        state.append(message, retry);
+        track.replaceChildren(state);
+    };
+
+    const loadFeaturedGames = async (): Promise<void> => {
+        controller?.abort();
+        controller = new AbortController();
+        const requestController = controller;
+        clearTimer();
+        showLoading();
+
+        try {
+            games = await fetchCollection(
+                '/games?featured=true',
+                isFeaturedGame,
+                requestController.signal,
+            );
+            if (requestController.signal.aborted) {
+                return;
+            }
+
+            track.removeAttribute('aria-busy');
+            cards.splice(
+                0,
+                cards.length,
+                ...games.map((game, index) =>
+                    createGameCard(game, index, openGameDetails),
+                ),
+            );
+            centerIndex = 0;
+
+            if (games.length === 0) {
+                track.removeAttribute('aria-busy');
+                const empty = document.createElement('p');
+                empty.className = 'carousel-state carousel-state--empty';
+                empty.textContent =
+                    'No featured games are available right now.';
+                track.replaceChildren(empty);
+                return;
+            }
+
+            previousButton.disabled = games.length < 2;
+            nextButton.disabled = games.length < 2;
+            track.replaceChildren(...cards);
+            track.removeAttribute('aria-busy');
+            render();
+            scheduleAutoplay(autoplayDuration);
+        } catch {
+            if (requestController.signal.aborted) {
+                return;
+            }
+
+            track.removeAttribute('aria-busy');
+            showError();
+            snackbar.show(
+                'Unable to load featured games. Please try again.',
+                'error',
+            );
+        }
     };
 
     previousButton.addEventListener('click', () => move(-1));
@@ -277,6 +377,7 @@ export const createCarousel = (
         activePointerId = undefined;
 
         if (
+            games.length > 1 &&
             Math.abs(deltaX) > swipeThreshold &&
             Math.abs(deltaX) > Math.abs(deltaY)
         ) {
@@ -297,7 +398,7 @@ export const createCarousel = (
         pointerStartCard = undefined;
         resumeAutoplay();
         if (clickedCard) {
-            openGameDetails();
+            openGameDetails(games[clickedCard.gameIndex].slug);
         }
     };
 
@@ -336,8 +437,15 @@ export const createCarousel = (
     });
 
     globalThis.addEventListener('resize', render);
-    render();
-    scheduleAutoplay(autoplayDuration);
 
+    section.destroy = (): void => {
+        clearTimer();
+        controller?.abort();
+        globalThis.removeEventListener('resize', render);
+        globalThis.removeEventListener('pointerup', handlePointerUp);
+        globalThis.removeEventListener('pointercancel', handlePointerCancel);
+    };
+
+    void loadFeaturedGames();
     return section;
 };

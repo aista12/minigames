@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>MiniGames</title>
+        <script>
+            const segments = window.location.pathname
+                .split('/')
+                .filter(Boolean);
+            const basePath = segments.length ? `/${segments[0]}/` : '/';
+            if (window.location.pathname.startsWith(basePath)) {
+                const destination = new URL(basePath, window.location.origin);
+                destination.searchParams.set(
+                    '__spa_redirect',
+                    `${window.location.pathname}${window.location.search}${window.location.hash}`,
+                );
+                window.location.replace(destination.href);
+            }
+        </script>
+    </head>
+    <body>
+        <p>Redirecting to MiniGames...</p>
+    </body>
+</html>
