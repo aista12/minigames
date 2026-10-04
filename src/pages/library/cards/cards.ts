@@ -48,7 +48,7 @@ export type InteractiveLibraryCardsSection = HTMLElement & {
 const createCard = (
     game: LibraryGame,
     index: number,
-    openGameDetails: () => void,
+    openGameDetails: (gameSlug: string) => void,
 ): HTMLLIElement => {
     const item = document.createElement('li');
     item.className = 'library-cards__item';
@@ -122,7 +122,7 @@ const createCard = (
     details.type = 'button';
     details.textContent = 'Details';
     details.setAttribute('aria-label', `View details for ${game.name}`);
-    details.addEventListener('click', openGameDetails);
+    details.addEventListener('click', () => openGameDetails(game.slug));
 
     content.append(badges, title, description, metadata, details);
     card.append(image, content);
@@ -155,7 +155,7 @@ const createSkeletonCard = (): HTMLLIElement => {
 };
 
 export const createLibraryCardsSection = (
-    openGameDetails: () => void,
+    openGameDetails: (gameSlug: string) => void,
     snackbar: Snackbar,
     onPaginationUpdate: (page: number, totalPages: number) => void,
 ): InteractiveLibraryCardsSection => {

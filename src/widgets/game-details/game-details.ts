@@ -1,146 +1,199 @@
 import './game-details.scss';
+import { API_BASE_URL } from '../../shared/api';
+import type { Snackbar } from '../../shared/snackbar';
 
-const images = import.meta.glob<string>(
-    '../../pages/library/assets/tukoni-forest-keepers-hero.jpg',
+type GameDetails = {
+    slug: string;
+    name: string;
+    heroImage: string;
+    rating: number;
+    likesCount: number;
+    isLikedByCurrentUser: boolean;
+    fullDescription: string;
+    specs: {
+        genre: string;
+        players: string;
+        duration: string;
+        price: string;
+    };
+    topRecords: {
+        position: number;
+        playerName: string;
+        score: number;
+        achievedAt: string;
+    }[];
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
+const isGameDetails = (value: unknown): value is GameDetails =>
+    isRecord(value) &&
+    isRecord(value.specs) &&
+    typeof value.slug === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.heroImage === 'string' &&
+    typeof value.rating === 'number' &&
+    typeof value.likesCount === 'number' &&
+    typeof value.isLikedByCurrentUser === 'boolean' &&
+    typeof value.fullDescription === 'string' &&
+    typeof value.specs.genre === 'string' &&
+    typeof value.specs.players === 'string' &&
+    typeof value.specs.duration === 'string' &&
+    typeof value.specs.price === 'string' &&
+    Array.isArray(value.topRecords) &&
+    value.topRecords.every(
+        (record: unknown) =>
+            isRecord(record) &&
+            typeof record.position === 'number' &&
+            typeof record.playerName === 'string' &&
+            typeof record.score === 'number' &&
+            typeof record.achievedAt === 'string',
+    );
+
+const localHeroImages = import.meta.glob<string>(
+    '../../pages/library/assets/*-hero.jpg',
     { eager: true, query: '?url', import: 'default' },
 );
-
-const heroImage = Object.values(images)[0];
+const localCardImages = import.meta.glob<string>(
+    '../../pages/library/assets/*-card.jpg',
+    { eager: true, query: '?url', import: 'default' },
+);
 const transitionDuration = 180;
+const formatNumber = new Intl.NumberFormat('en');
+const relativeTime = new Intl.RelativeTimeFormat('en', {
+    numeric: 'auto',
+});
+
+const formatRelativeTime = (dateValue: string): string => {
+    const date = new Date(dateValue);
+    const elapsedDays = Math.floor(
+        (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    );
+    return Number.isNaN(date.getTime())
+        ? dateValue
+        : relativeTime.format(elapsedDays, 'day');
+};
 
 export type GameDetailsDialog = {
     element: HTMLDialogElement;
-    open: () => void;
+    open: (gameSlug: string, userEmail?: string) => void;
 };
 
-export const createGameDetailsDialog = (): GameDetailsDialog => {
-    const dialog = document.createElement('dialog');
-    dialog.className = 'game-details';
-    dialog.setAttribute('aria-labelledby', 'game-details-title');
-    dialog.innerHTML = `
-        <div class="game-details__content">
-            <header class="game-details__hero">
-                <img class="game-details__image" src="${heroImage}" alt="Tukoni: Forest Keepers game cover" />
-                <button class="game-details__close" type="button" aria-label="Close game details">×</button>
-            </header>
-            <section class="game-details__info" aria-labelledby="game-details-title">
-                <div class="game-details__eyebrow">PUZZLE ADVENTURE</div>
-                <h2 id="game-details-title">Tukoni: Forest Keepers</h2>
-                <p>Tukoni: Forest Keepers — a cozy hand-drawn puzzle-adventure. You are Traveller, a little forest spirit on an important mission. Wander storybook meadows, visit mushroom villages, meet adorable inhabitants, solve gentle hand-crafted puzzles, brew herbal teas and help the Tukoni forest prepare peacefully for the coming winter.</p>
-                <ul class="game-details__specs" aria-label="Game details">
-                    <li><span>Genre</span><strong>Puzzle</strong></li>
-                    <li><span>Players</span><strong>Solo</strong></li>
-                    <li><span>Duration</span><strong>40–90 min</strong></li>
-                    <li><span>Price</span><strong>Free</strong></li>
-                </ul>
-                <div class="game-details__actions">
-                    <button class="game-details__play" type="button">Play Now</button>
-                    <button class="game-details__favorite" type="button" aria-pressed="false">♡ <span>Add to Favorites</span></button>
-                </div>
-            </section>
-            <section class="game-details__records" aria-labelledby="game-details-records-title">
-                <h3 id="game-details-records-title">Top Records</h3>
-                <table class="game-details__records-table">
-                    <thead>
-                        <tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Best time</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>1</td><td><span class="game-details__player-avatar" aria-hidden="true">L</span>Luna</td><td>02:14</td></tr>
-                        <tr><td>2</td><td><span class="game-details__player-avatar" aria-hidden="true">M</span>Mossy</td><td>02:38</td></tr>
-                        <tr><td>3</td><td><span class="game-details__player-avatar" aria-hidden="true">F</span>Fern</td><td>03:05</td></tr>
-                    </tbody>
-                </table>
-            </section>
-            <section class="game-details__comments" aria-labelledby="game-details-comments-title">
-                <h3 id="game-details-comments-title">Comments</h3>
-                <form class="game-details__comment-form">
-                    <label class="game-details__comment-label" for="game-details-comment">Share your thoughts</label>
-                    <div class="game-details__comment-compose">
-                        <textarea id="game-details-comment" class="game-details__comment-input" rows="1" placeholder="Write a comment..."></textarea>
-                        <button class="game-details__comment-submit" type="submit">Submit</button>
-                    </div>
-                </form>
-                <ul class="game-details__comment-list" aria-label="Player comments">
-                    <li>
-                        <article class="game-details__comment">
-                            <div class="game-details__comment-avatar" aria-hidden="true">A</div>
-                            <div class="game-details__comment-body">
-                                <h4>Alex</h4>
-                                <p>A lovely little adventure. The art and puzzles are so relaxing!</p>
-                                <button class="game-details__like" type="button" aria-pressed="false" aria-label="Like Alex's comment"><span class="game-details__like-icon" aria-hidden="true">♡</span><span>12</span></button>
-                            </div>
-                        </article>
-                    </li>
-                    <li>
-                        <article class="game-details__comment">
-                            <div class="game-details__comment-avatar" aria-hidden="true">S</div>
-                            <div class="game-details__comment-body">
-                                <h4>Sam</h4>
-                                <p>Perfect for a cozy evening. I can't wait to explore more of the forest.</p>
-                                <button class="game-details__like" type="button" aria-pressed="false" aria-label="Like Sam's comment"><span class="game-details__like-icon" aria-hidden="true">♡</span><span>8</span></button>
-                            </div>
-                        </article>
-                    </li>
-                </ul>
-            </section>
-        </div>
+const createSkeleton = (): HTMLElement => {
+    const state = document.createElement('div');
+    state.className = 'game-details__state game-details__state--loading';
+    state.setAttribute('role', 'status');
+    state.setAttribute('aria-label', 'Loading game details');
+    state.innerHTML = `
+        <span class="game-details__skeleton game-details__skeleton--title"></span>
+        <span class="game-details__skeleton"></span>
+        <span class="game-details__skeleton"></span>
+        <span class="game-details__skeleton game-details__skeleton--short"></span>
+        <span class="game-details__skeleton game-details__skeleton--block"></span>
     `;
+    return state;
+};
 
-    const favoriteButton = dialog.querySelector<HTMLButtonElement>(
-        '.game-details__favorite',
+const createState = (
+    variant: 'error' | 'empty',
+    message: string,
+    retry?: () => void,
+): HTMLElement => {
+    const state = document.createElement('div');
+    state.className = `game-details__state game-details__state--${variant}`;
+    state.setAttribute('role', variant === 'error' ? 'alert' : 'status');
+
+    const title = document.createElement('h2');
+    title.id = 'game-details-title';
+    title.textContent =
+        variant === 'error'
+            ? 'Game details could not be loaded'
+            : 'Game not found';
+
+    const description = document.createElement('p');
+    description.textContent = message;
+    state.append(title, description);
+
+    if (retry) {
+        const retryButton = document.createElement('button');
+        retryButton.className = 'game-details__retry';
+        retryButton.type = 'button';
+        retryButton.textContent = 'Try again';
+        retryButton.addEventListener('click', retry);
+        state.append(retryButton);
+    }
+
+    return state;
+};
+
+const createInfoSection = (
+    details: GameDetails,
+    isFavorite: boolean,
+): HTMLElement => {
+    const section = document.createElement('section');
+    section.className = 'game-details__info';
+    section.setAttribute('aria-labelledby', 'game-details-title');
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'game-details__eyebrow';
+    eyebrow.textContent = details.specs.genre.toUpperCase();
+
+    const title = document.createElement('h2');
+    title.id = 'game-details-title';
+    title.textContent = details.name;
+
+    const description = document.createElement('p');
+    description.textContent = details.fullDescription;
+
+    const summary = document.createElement('div');
+    summary.className = 'game-details__summary';
+    const rating = document.createElement('span');
+    rating.textContent = `★ ${details.rating.toFixed(1)}`;
+    const likes = document.createElement('span');
+    likes.textContent = `♡ ${new Intl.NumberFormat('en', {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+    }).format(details.likesCount)}`;
+    summary.append(rating, likes);
+
+    const specs = document.createElement('ul');
+    specs.className = 'game-details__specs';
+    specs.setAttribute('aria-label', 'Game details');
+    for (const [label, value] of [
+        ['Genre', details.specs.genre],
+        ['Players', details.specs.players],
+        ['Duration', details.specs.duration],
+        ['Price', details.specs.price],
+    ]) {
+        const item = document.createElement('li');
+        const labelElement = document.createElement('span');
+        labelElement.textContent = label;
+        const valueElement = document.createElement('strong');
+        valueElement.textContent = value;
+        item.append(labelElement, valueElement);
+        specs.append(item);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'game-details__actions';
+    const play = document.createElement('button');
+    play.className = 'game-details__play';
+    play.type = 'button';
+    play.textContent = 'Play Now';
+
+    const favoriteButton = document.createElement('button');
+    favoriteButton.className = 'game-details__favorite';
+    favoriteButton.type = 'button';
+    favoriteButton.setAttribute('aria-pressed', String(isFavorite));
+    favoriteButton.classList.toggle(
+        'game-details__favorite--active',
+        isFavorite,
     );
-    const commentInput = dialog.querySelector<HTMLTextAreaElement>(
-        '.game-details__comment-input',
-    );
-    let closeTimer: number | undefined;
-
-    const resetDialog = (): void => {
-        favoriteButton?.setAttribute('aria-pressed', 'false');
-        favoriteButton?.classList.remove('game-details__favorite--active');
-        if (favoriteButton) {
-            favoriteButton.innerHTML = '♡ <span>Add to Favorites</span>';
-        }
-        for (const likeButton of dialog.querySelectorAll<HTMLButtonElement>(
-            '.game-details__like',
-        )) {
-            likeButton.setAttribute('aria-pressed', 'false');
-            likeButton.classList.remove('game-details__like--active');
-            const icon = likeButton.querySelector('.game-details__like-icon');
-            if (icon) {
-                icon.textContent = '♡';
-            }
-        }
-        if (commentInput) {
-            commentInput.value = '';
-            commentInput.style.height = '';
-            commentInput.style.overflowY = '';
-        }
-        document.body.classList.remove('game-details-open');
-    };
-
-    const closeDialog = (): void => {
-        if (
-            !dialog.open ||
-            dialog.classList.contains('game-details--closing')
-        ) {
-            return;
-        }
-
-        dialog.classList.remove('game-details--visible');
-        dialog.classList.add('game-details--closing');
-        closeTimer = globalThis.setTimeout(() => {
-            dialog.close();
-            dialog.classList.remove('game-details--closing');
-            closeTimer = undefined;
-            resetDialog();
-        }, transitionDuration);
-    };
-
-    dialog
-        .querySelector<HTMLButtonElement>('.game-details__close')
-        ?.addEventListener('click', closeDialog);
-
-    favoriteButton?.addEventListener('click', () => {
+    favoriteButton.innerHTML = isFavorite
+        ? '♥ <span>Added to Favorites</span>'
+        : '♡ <span>Add to Favorites</span>';
+    favoriteButton.addEventListener('click', () => {
         const isActive = favoriteButton.getAttribute('aria-pressed') === 'true';
         favoriteButton.setAttribute('aria-pressed', String(!isActive));
         favoriteButton.classList.toggle(
@@ -151,42 +204,257 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
             ? '♡ <span>Add to Favorites</span>'
             : '♥ <span>Added to Favorites</span>';
     });
+    actions.append(play, favoriteButton);
+    section.append(eyebrow, title, description, summary, specs, actions);
+    return section;
+};
 
-    commentInput?.addEventListener('input', () => {
-        commentInput.style.height = 'auto';
-        const maxHeight = 88;
-        commentInput.style.height = `${Math.min(commentInput.scrollHeight, maxHeight)}px`;
-        commentInput.style.overflowY =
-            commentInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
-    });
+const createRecordsSection = (
+    records: GameDetails['topRecords'],
+): HTMLElement => {
+    const section = document.createElement('section');
+    section.className = 'game-details__records';
+    section.setAttribute('aria-labelledby', 'game-details-records-title');
 
-    dialog.querySelector('form')?.addEventListener('submit', (event) => {
+    const heading = document.createElement('h3');
+    heading.id = 'game-details-records-title';
+    heading.textContent = 'Top Records';
+
+    const table = document.createElement('table');
+    table.className = 'game-details__records-table';
+    table.innerHTML = `
+        <thead>
+            <tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Score</th><th scope="col">Achieved</th></tr>
+        </thead>
+    `;
+    const body = document.createElement('tbody');
+    if (records.length === 0) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 4;
+        cell.textContent = 'No records yet.';
+        row.append(cell);
+        body.append(row);
+    } else {
+        for (const record of records) {
+            const row = document.createElement('tr');
+            const position = document.createElement('td');
+            position.textContent = String(record.position);
+
+            const player = document.createElement('td');
+            const avatar = document.createElement('span');
+            avatar.className = 'game-details__player-avatar';
+            avatar.setAttribute('aria-hidden', 'true');
+            avatar.textContent = record.playerName.slice(0, 1).toUpperCase();
+            player.append(avatar, document.createTextNode(record.playerName));
+
+            const score = document.createElement('td');
+            score.textContent = `${formatNumber.format(record.score)} pts`;
+
+            const achieved = document.createElement('td');
+            achieved.textContent = formatRelativeTime(record.achievedAt);
+            row.append(position, player, score, achieved);
+            body.append(row);
+        }
+    }
+    table.append(body);
+    section.append(heading, table);
+    return section;
+};
+
+const createCommentsSection = (): HTMLElement => {
+    const comments = [
+        {
+            name: 'Alex',
+            text: 'A lovely little adventure. The art and puzzles are so relaxing!',
+            likes: 12,
+        },
+        {
+            name: 'Sam',
+            text: "Perfect for a cozy evening. I can't wait to explore more of the forest.",
+            likes: 8,
+        },
+    ];
+    const section = document.createElement('section');
+    section.className = 'game-details__comments';
+    section.setAttribute('aria-labelledby', 'game-details-comments-title');
+
+    const heading = document.createElement('h3');
+    heading.id = 'game-details-comments-title';
+    heading.textContent = 'Comments';
+
+    const form = document.createElement('form');
+    form.className = 'game-details__comment-form';
+    form.addEventListener('submit', (event) => {
         event.preventDefault();
     });
 
-    for (const likeButton of dialog.querySelectorAll<HTMLButtonElement>(
-        '.game-details__like',
-    )) {
-        likeButton.addEventListener('click', () => {
-            const isActive = likeButton.getAttribute('aria-pressed') === 'true';
-            likeButton.setAttribute('aria-pressed', String(!isActive));
-            likeButton.classList.toggle(
-                'game-details__like--active',
-                !isActive,
-            );
-            const icon = likeButton.querySelector('.game-details__like-icon');
-            if (icon) {
-                icon.textContent = isActive ? '♡' : '♥';
-            }
+    const label = document.createElement('label');
+    label.className = 'game-details__comment-label';
+    label.htmlFor = 'game-details-comment';
+    label.textContent = 'Share your thoughts';
+
+    const compose = document.createElement('div');
+    compose.className = 'game-details__comment-compose';
+    const input = document.createElement('textarea');
+    input.id = 'game-details-comment';
+    input.className = 'game-details__comment-input';
+    input.rows = 1;
+    input.placeholder = 'Write a comment...';
+    input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        const maxHeight = 88;
+        input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+        input.style.overflowY =
+            input.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    });
+
+    const submit = document.createElement('button');
+    submit.className = 'game-details__comment-submit';
+    submit.type = 'submit';
+    submit.setAttribute('aria-label', 'Submit comment');
+    submit.textContent = '➤';
+    compose.append(input, submit);
+    form.append(label, compose);
+
+    const list = document.createElement('ul');
+    list.className = 'game-details__comment-list';
+    list.setAttribute('aria-label', 'Player comments');
+    for (const comment of comments) {
+        const item = document.createElement('li');
+        const article = document.createElement('article');
+        article.className = 'game-details__comment';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'game-details__comment-avatar';
+        avatar.setAttribute('aria-hidden', 'true');
+        avatar.textContent = comment.name.slice(0, 1);
+
+        const body = document.createElement('div');
+        body.className = 'game-details__comment-body';
+        const name = document.createElement('h4');
+        name.textContent = comment.name;
+        const text = document.createElement('p');
+        text.textContent = comment.text;
+
+        const like = document.createElement('button');
+        like.className = 'game-details__like';
+        like.type = 'button';
+        like.setAttribute('aria-pressed', 'false');
+        like.setAttribute('aria-label', `Like ${comment.name}'s comment`);
+        const icon = document.createElement('span');
+        icon.className = 'game-details__like-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = '♡';
+        const count = document.createElement('span');
+        count.textContent = String(comment.likes);
+        like.append(icon, count);
+        like.addEventListener('click', () => {
+            const isActive = like.getAttribute('aria-pressed') === 'true';
+            like.setAttribute('aria-pressed', String(!isActive));
+            like.classList.toggle('game-details__like--active', !isActive);
+            icon.textContent = isActive ? '♡' : '♥';
+            count.textContent = String(comment.likes + (isActive ? 0 : 1));
         });
+
+        body.append(name, text, like);
+        article.append(avatar, body);
+        item.append(article);
+        list.append(item);
     }
 
-    dialog.addEventListener('click', (event) => {
-        if (event.target !== dialog) {
+    section.append(heading, form, list);
+    return section;
+};
+
+const renderDetails = (
+    body: HTMLElement,
+    heroImage: HTMLImageElement,
+    details: GameDetails,
+    dialog: HTMLDialogElement,
+): void => {
+    const localImage =
+        localHeroImages[`../../pages/library/assets/${details.slug}-hero.jpg`];
+    const localCardImage =
+        localCardImages[`../../pages/library/assets/${details.slug}-card.jpg`];
+    const fallbackImage = localImage ?? localCardImage;
+    let hasTriedLocalImage = false;
+    heroImage.hidden = false;
+    heroImage.alt = `${details.name} game cover`;
+    const handleImageError = (): void => {
+        if (fallbackImage && !hasTriedLocalImage) {
+            hasTriedLocalImage = true;
+            heroImage.addEventListener('error', handleImageError, {
+                once: true,
+            });
+            heroImage.src = fallbackImage;
+            return;
+        }
+        heroImage.hidden = true;
+    };
+    heroImage.addEventListener('error', handleImageError, { once: true });
+    heroImage.src = new URL(details.heroImage, API_BASE_URL).href;
+
+    body.setAttribute('aria-busy', 'false');
+    dialog.removeAttribute('aria-label');
+    dialog.setAttribute('aria-labelledby', 'game-details-title');
+    body.replaceChildren(
+        createInfoSection(details, details.isLikedByCurrentUser),
+        createRecordsSection(details.topRecords),
+        createCommentsSection(),
+    );
+};
+
+export const createGameDetailsDialog = (
+    snackbar: Snackbar,
+): GameDetailsDialog => {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'game-details';
+    dialog.setAttribute('aria-label', 'Game details');
+    dialog.innerHTML = `
+        <div class="game-details__content">
+            <header class="game-details__hero">
+                <img class="game-details__image" alt="" hidden />
+                <button class="game-details__close" type="button" aria-label="Close game details">×</button>
+            </header>
+            <div class="game-details__body" aria-live="polite"></div>
+        </div>
+    `;
+
+    const body = dialog.querySelector<HTMLElement>('.game-details__body');
+    const heroImage = dialog.querySelector<HTMLImageElement>(
+        '.game-details__image',
+    );
+    let closeTimer: number | undefined;
+    let requestController: AbortController | undefined;
+    let currentRequest: (() => void) | undefined;
+
+    const closeDialog = (): void => {
+        if (
+            !dialog.open ||
+            dialog.classList.contains('game-details--closing')
+        ) {
             return;
         }
 
-        closeDialog();
+        requestController?.abort();
+        dialog.classList.remove('game-details--visible');
+        dialog.classList.add('game-details--closing');
+        closeTimer = globalThis.setTimeout(() => {
+            dialog.close();
+            dialog.classList.remove('game-details--closing');
+            closeTimer = undefined;
+            document.body.classList.remove('game-details-open');
+        }, transitionDuration);
+    };
+
+    dialog
+        .querySelector<HTMLButtonElement>('.game-details__close')
+        ?.addEventListener('click', closeDialog);
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) {
+            closeDialog();
+        }
     });
     dialog.addEventListener('cancel', (event) => {
         event.preventDefault();
@@ -200,25 +468,103 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
         event.preventDefault();
         closeDialog();
     });
-    dialog.addEventListener('close', resetDialog);
+    dialog.addEventListener('close', () => {
+        document.body.classList.remove('game-details-open');
+    });
+
+    const loadDetails = async (
+        gameSlug: string,
+        userEmail: string | undefined,
+    ): Promise<void> => {
+        if (!body || !heroImage) {
+            return;
+        }
+
+        requestController?.abort();
+        requestController = new AbortController();
+        const controller = requestController;
+        body.setAttribute('aria-busy', 'true');
+        body.replaceChildren(createSkeleton());
+        dialog.removeAttribute('aria-labelledby');
+        dialog.setAttribute('aria-label', 'Game details');
+        heroImage.hidden = true;
+        heroImage.removeAttribute('src');
+
+        try {
+            const query = new URLSearchParams();
+            if (userEmail?.trim()) {
+                query.set('userEmail', userEmail.trim());
+            }
+            const queryString = query.size > 0 ? `?${query.toString()}` : '';
+            const response = await fetch(
+                `${API_BASE_URL}/games/${encodeURIComponent(gameSlug)}${queryString}`,
+                { signal: controller.signal },
+            );
+            if (!response.ok) {
+                throw new Error(
+                    `Request failed with status ${response.status}`,
+                );
+            }
+
+            const payload: unknown = await response.json();
+            if (!isRecord(payload) || !('data' in payload)) {
+                throw new Error('The server returned an invalid response.');
+            }
+            if (controller.signal.aborted) {
+                return;
+            }
+            if (payload.data === null) {
+                body.setAttribute('aria-busy', 'false');
+                dialog.removeAttribute('aria-label');
+                dialog.setAttribute('aria-labelledby', 'game-details-title');
+                body.replaceChildren(
+                    createState('empty', 'This game could not be found.'),
+                );
+                return;
+            }
+            if (!isGameDetails(payload.data)) {
+                throw new Error('The server returned invalid game details.');
+            }
+            renderDetails(body, heroImage, payload.data, dialog);
+        } catch {
+            if (controller.signal.aborted) {
+                return;
+            }
+
+            body.setAttribute('aria-busy', 'false');
+            dialog.removeAttribute('aria-label');
+            dialog.setAttribute('aria-labelledby', 'game-details-title');
+            body.replaceChildren(
+                createState(
+                    'error',
+                    'Please check your connection and try again.',
+                    () => currentRequest?.(),
+                ),
+            );
+            snackbar.show(
+                'Unable to load game details. Please try again.',
+                'error',
+            );
+        }
+    };
 
     return {
         element: dialog,
-        open: () => {
-            if (
-                dialog.open &&
-                !dialog.classList.contains('game-details--closing')
-            ) {
-                return;
+        open: (gameSlug, userEmail): void => {
+            if (!gameSlug) {
+                throw new Error(
+                    'A game slug is required to open game details.',
+                );
             }
 
             if (closeTimer !== undefined) {
                 globalThis.clearTimeout(closeTimer);
                 closeTimer = undefined;
             }
-
+            currentRequest = () => {
+                void loadDetails(gameSlug, userEmail);
+            };
             dialog.classList.remove('game-details--closing');
-            resetDialog();
             if (!dialog.open) {
                 dialog.showModal();
                 document.body.classList.add('game-details-open');
@@ -226,6 +572,7 @@ export const createGameDetailsDialog = (): GameDetailsDialog => {
             globalThis.requestAnimationFrame(() => {
                 dialog.classList.add('game-details--visible');
             });
+            void loadDetails(gameSlug, userEmail);
         },
     };
 };
