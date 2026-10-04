@@ -121,7 +121,10 @@ const formatRelativeTime = (dateValue: string): string => {
         return `${elapsedWeeks} ${elapsedWeeks === 1 ? 'week' : 'weeks'} ago`;
     }
     if (elapsedDays < 365) {
-        const elapsedMonths = Math.max(1, Math.floor(elapsedDays / 30));
+        const elapsedMonths = Math.min(
+            11,
+            Math.max(1, Math.floor(elapsedDays / 30)),
+        );
         return `${elapsedMonths} ${elapsedMonths === 1 ? 'month' : 'months'} ago`;
     }
 
@@ -325,6 +328,40 @@ const createCommentsSection = (): HTMLElement => {
     heading.id = 'game-details-comments-title';
     heading.textContent = 'Comments';
 
+    const form = document.createElement('form');
+    form.className = 'game-details__comment-form';
+    form.setAttribute('aria-label', 'Add a comment');
+
+    const label = document.createElement('label');
+    label.className = 'game-details__comment-label';
+    label.htmlFor = 'game-details-comment';
+    label.textContent = 'Share your thoughts';
+
+    const compose = document.createElement('div');
+    compose.className = 'game-details__comment-compose';
+
+    const input = document.createElement('textarea');
+    input.id = 'game-details-comment';
+    input.className = 'game-details__comment-input';
+    input.rows = 1;
+    input.placeholder = 'Write a comment...';
+    input.disabled = true;
+    input.setAttribute('aria-describedby', 'game-details-comment-note');
+
+    const submit = document.createElement('button');
+    submit.className = 'game-details__comment-submit';
+    submit.type = 'button';
+    submit.disabled = true;
+    submit.setAttribute('aria-label', 'Commenting unavailable');
+    submit.textContent = '➤';
+
+    const note = document.createElement('p');
+    note.className = 'game-details__comment-note';
+    note.id = 'game-details-comment-note';
+    note.textContent = 'Commenting will be available in a future update.';
+    compose.append(input, submit);
+    form.append(label, compose, note);
+
     const list = document.createElement('ul');
     list.className = 'game-details__comment-list';
     list.setAttribute('aria-label', 'Player comments');
@@ -336,7 +373,7 @@ const createCommentsSection = (): HTMLElement => {
         <li class="game-details__comment-skeleton" aria-hidden="true"></li>
     `;
 
-    section.append(heading, list);
+    section.append(heading, form, list);
     return section;
 };
 

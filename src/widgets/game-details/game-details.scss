@@ -401,8 +401,19 @@
     color: tokens.$color-text-secondary;
 }
 
+.game-details__comment-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 .game-details__comment-input:focus-visible {
     border-color: tokens.$color-primary-active;
+}
+
+.game-details__comment-note {
+    margin: tokens.$size-2 0 0;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-xs;
 }
 
 .game-details__comment-submit {
@@ -419,6 +430,11 @@
     transition:
         background-color 160ms ease,
         transform 160ms ease;
+}
+
+.game-details__comment-submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
 }
 
 .game-details__comment-submit:hover {
