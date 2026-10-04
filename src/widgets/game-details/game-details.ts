@@ -135,6 +135,8 @@ const formatRelativeTime = (dateValue: string): string => {
 export type GameDetailsDialog = {
     element: HTMLDialogElement;
     open: (gameSlug: string, userEmail?: string) => void;
+    close: () => void;
+    setCloseHandler: (handler: () => void) => void;
 };
 
 const createSkeleton = (): HTMLElement => {
@@ -488,8 +490,14 @@ export const createGameDetailsDialog = (
     let requestController: AbortController | undefined;
     let commentsController: AbortController | undefined;
     let currentRequest: (() => void) | undefined;
+    let onUserClose: (() => void) | undefined;
 
-    const closeDialog = (): void => {
+    const closeDialog = (isUserInitiated = false): void => {
+        if (isUserInitiated && onUserClose) {
+            onUserClose();
+            return;
+        }
+
         if (
             !dialog.open ||
             dialog.classList.contains('game-details--closing')
@@ -511,15 +519,15 @@ export const createGameDetailsDialog = (
 
     dialog
         .querySelector<HTMLButtonElement>('.game-details__close')
-        ?.addEventListener('click', closeDialog);
+        ?.addEventListener('click', () => closeDialog(true));
     dialog.addEventListener('click', (event) => {
         if (event.target === dialog) {
-            closeDialog();
+            closeDialog(true);
         }
     });
     dialog.addEventListener('cancel', (event) => {
         event.preventDefault();
-        closeDialog();
+        closeDialog(true);
     });
     dialog.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' || !dialog.open) {
@@ -527,7 +535,7 @@ export const createGameDetailsDialog = (
         }
 
         event.preventDefault();
-        closeDialog();
+        closeDialog(true);
     });
     dialog.addEventListener('close', () => {
         document.body.classList.remove('game-details-open');
@@ -696,6 +704,10 @@ export const createGameDetailsDialog = (
 
     return {
         element: dialog,
+        close: () => closeDialog(),
+        setCloseHandler: (handler): void => {
+            onUserClose = handler;
+        },
         open: (gameSlug, userEmail): void => {
             if (!gameSlug) {
                 throw new Error(

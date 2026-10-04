@@ -40,8 +40,7 @@ const gameCardImages = import.meta.glob<string>('../assets/*-card.jpg', {
 const cardsPerPage = 6;
 
 export type InteractiveLibraryCardsSection = HTMLElement & {
-    load: (category: string, sort: string) => void;
-    loadPage: (page: number) => void;
+    load: (category: string, sort: string, page?: number) => void;
     destroy: () => void;
 };
 
@@ -180,17 +179,9 @@ export const createLibraryCardsSection = (
     let selectedCategory = 'all';
     let selectedSort = 'rating-desc';
     let selectedPage = 1;
-    section.load = (category, sort): void => {
+    section.load = (category, sort, page = 1): void => {
         selectedCategory = category;
         selectedSort = sort;
-        selectedPage = 1;
-        void loadGames();
-    };
-    section.loadPage = (page): void => {
-        if (page === selectedPage || page < 1 || !Number.isSafeInteger(page)) {
-            return;
-        }
-
         selectedPage = page;
         void loadGames();
     };

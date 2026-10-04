@@ -5,6 +5,7 @@ const desktopPageLimit = 4;
 
 export type InteractiveLibraryPagination = HTMLElement & {
     setPageChangeHandler: (handler: (page: number) => void) => void;
+    setPage: (page: number) => void;
     update: (page: number, totalPages: number) => void;
 };
 
@@ -88,6 +89,10 @@ export const createLibraryPagination = (): InteractiveLibraryPagination => {
     };
     navigation.setPageChangeHandler = (handler): void => {
         onPageChange = handler;
+    };
+    navigation.setPage = (page): void => {
+        activePage = Math.min(Math.max(page, 1), totalPages);
+        render();
     };
 
     previousButton.addEventListener('click', () => {
