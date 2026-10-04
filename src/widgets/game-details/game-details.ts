@@ -24,8 +24,44 @@ type GameDetails = {
     }[];
 };
 
+type GameComment = {
+    commentId: string;
+    authorName: string;
+    text: string;
+    likesCount: number;
+    createdAt: string;
+};
+
+type GameComments = {
+    data: GameComment[];
+    meta: {
+        totalComments: number;
+    };
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null;
+
+const isGameComment = (value: unknown): value is GameComment =>
+    isRecord(value) &&
+    typeof value.commentId === 'string' &&
+    typeof value.authorName === 'string' &&
+    typeof value.text === 'string' &&
+    typeof value.likesCount === 'number' &&
+    Number.isSafeInteger(value.likesCount) &&
+    value.likesCount >= 0 &&
+    typeof value.createdAt === 'string' &&
+    !Number.isNaN(Date.parse(value.createdAt));
+
+const isGameComments = (value: unknown): value is GameComments =>
+    isRecord(value) &&
+    Array.isArray(value.data) &&
+    value.data.length <= 3 &&
+    value.data.every(isGameComment) &&
+    isRecord(value.meta) &&
+    typeof value.meta.totalComments === 'number' &&
+    Number.isSafeInteger(value.meta.totalComments) &&
+    value.meta.totalComments >= 0;
 
 const isGameDetails = (value: unknown): value is GameDetails =>
     isRecord(value) &&
@@ -61,18 +97,36 @@ const localCardImages = import.meta.glob<string>(
 );
 const transitionDuration = 180;
 const formatNumber = new Intl.NumberFormat('en');
-const relativeTime = new Intl.RelativeTimeFormat('en', {
-    numeric: 'auto',
-});
-
 const formatRelativeTime = (dateValue: string): string => {
-    const date = new Date(dateValue);
-    const elapsedDays = Math.floor(
-        (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-    );
-    return Number.isNaN(date.getTime())
-        ? dateValue
-        : relativeTime.format(elapsedDays, 'day');
+    const elapsedMilliseconds = Math.max(0, Date.now() - Date.parse(dateValue));
+    const elapsedMinutes = Math.floor(elapsedMilliseconds / 60_000);
+    if (elapsedMinutes < 1) {
+        return 'just now';
+    }
+    if (elapsedMinutes < 60) {
+        return `${elapsedMinutes} min ago`;
+    }
+
+    const elapsedHours = Math.floor(elapsedMinutes / 60);
+    if (elapsedHours < 24) {
+        return `${elapsedHours} ${elapsedHours === 1 ? 'hour' : 'hours'} ago`;
+    }
+
+    const elapsedDays = Math.floor(elapsedHours / 24);
+    if (elapsedDays < 7) {
+        return `${elapsedDays} ${elapsedDays === 1 ? 'day' : 'days'} ago`;
+    }
+    if (elapsedDays < 28) {
+        const elapsedWeeks = Math.floor(elapsedDays / 7);
+        return `${elapsedWeeks} ${elapsedWeeks === 1 ? 'week' : 'weeks'} ago`;
+    }
+    if (elapsedDays < 365) {
+        const elapsedMonths = Math.max(1, Math.floor(elapsedDays / 30));
+        return `${elapsedMonths} ${elapsedMonths === 1 ? 'month' : 'months'} ago`;
+    }
+
+    const elapsedYears = Math.floor(elapsedDays / 365);
+    return `${elapsedYears} ${elapsedYears === 1 ? 'year' : 'years'} ago`;
 };
 
 export type GameDetailsDialog = {
@@ -263,18 +317,6 @@ const createRecordsSection = (
 };
 
 const createCommentsSection = (): HTMLElement => {
-    const comments = [
-        {
-            name: 'Alex',
-            text: 'A lovely little adventure. The art and puzzles are so relaxing!',
-            likes: 12,
-        },
-        {
-            name: 'Sam',
-            text: "Perfect for a cozy evening. I can't wait to explore more of the forest.",
-            likes: 8,
-        },
-    ];
     const section = document.createElement('section');
     section.className = 'game-details__comments';
     section.setAttribute('aria-labelledby', 'game-details-comments-title');
@@ -283,88 +325,68 @@ const createCommentsSection = (): HTMLElement => {
     heading.id = 'game-details-comments-title';
     heading.textContent = 'Comments';
 
-    const form = document.createElement('form');
-    form.className = 'game-details__comment-form';
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
-    });
-
-    const label = document.createElement('label');
-    label.className = 'game-details__comment-label';
-    label.htmlFor = 'game-details-comment';
-    label.textContent = 'Share your thoughts';
-
-    const compose = document.createElement('div');
-    compose.className = 'game-details__comment-compose';
-    const input = document.createElement('textarea');
-    input.id = 'game-details-comment';
-    input.className = 'game-details__comment-input';
-    input.rows = 1;
-    input.placeholder = 'Write a comment...';
-    input.addEventListener('input', () => {
-        input.style.height = 'auto';
-        const maxHeight = 88;
-        input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
-        input.style.overflowY =
-            input.scrollHeight > maxHeight ? 'auto' : 'hidden';
-    });
-
-    const submit = document.createElement('button');
-    submit.className = 'game-details__comment-submit';
-    submit.type = 'submit';
-    submit.setAttribute('aria-label', 'Submit comment');
-    submit.textContent = '➤';
-    compose.append(input, submit);
-    form.append(label, compose);
-
     const list = document.createElement('ul');
     list.className = 'game-details__comment-list';
     list.setAttribute('aria-label', 'Player comments');
-    for (const comment of comments) {
-        const item = document.createElement('li');
-        const article = document.createElement('article');
-        article.className = 'game-details__comment';
+    list.setAttribute('aria-busy', 'true');
+    list.setAttribute('aria-live', 'polite');
+    list.innerHTML = `
+        <li class="game-details__comment-skeleton" aria-hidden="true"></li>
+        <li class="game-details__comment-skeleton" aria-hidden="true"></li>
+        <li class="game-details__comment-skeleton" aria-hidden="true"></li>
+    `;
 
-        const avatar = document.createElement('div');
-        avatar.className = 'game-details__comment-avatar';
-        avatar.setAttribute('aria-hidden', 'true');
-        avatar.textContent = comment.name.slice(0, 1);
+    section.append(heading, list);
+    return section;
+};
 
-        const body = document.createElement('div');
-        body.className = 'game-details__comment-body';
-        const name = document.createElement('h4');
-        name.textContent = comment.name;
-        const text = document.createElement('p');
-        text.textContent = comment.text;
-
-        const like = document.createElement('button');
-        like.className = 'game-details__like';
-        like.type = 'button';
-        like.setAttribute('aria-pressed', 'false');
-        like.setAttribute('aria-label', `Like ${comment.name}'s comment`);
-        const icon = document.createElement('span');
-        icon.className = 'game-details__like-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = '♡';
-        const count = document.createElement('span');
-        count.textContent = String(comment.likes);
-        like.append(icon, count);
-        like.addEventListener('click', () => {
-            const isActive = like.getAttribute('aria-pressed') === 'true';
-            like.setAttribute('aria-pressed', String(!isActive));
-            like.classList.toggle('game-details__like--active', !isActive);
-            icon.textContent = isActive ? '♡' : '♥';
-            count.textContent = String(comment.likes + (isActive ? 0 : 1));
-        });
-
-        body.append(name, text, like);
-        article.append(avatar, body);
-        item.append(article);
-        list.append(item);
+const renderComments = (
+    list: HTMLUListElement,
+    heading: HTMLHeadingElement,
+    comments: GameComments,
+): void => {
+    heading.textContent = `Comments (${comments.meta.totalComments})`;
+    list.removeAttribute('aria-busy');
+    if (comments.data.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'game-details__comments-empty';
+        empty.setAttribute('role', 'status');
+        empty.textContent = 'No comments yet.';
+        list.replaceChildren(empty);
+        return;
     }
 
-    section.append(heading, form, list);
-    return section;
+    list.replaceChildren(
+        ...comments.data.map((comment) => {
+            const item = document.createElement('li');
+            const article = document.createElement('article');
+            article.className = 'game-details__comment';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'game-details__comment-avatar';
+            avatar.setAttribute('aria-hidden', 'true');
+            avatar.textContent = comment.authorName.slice(0, 1).toUpperCase();
+
+            const body = document.createElement('div');
+            body.className = 'game-details__comment-body';
+            const author = document.createElement('h4');
+            author.textContent = comment.authorName;
+            const time = document.createElement('time');
+            time.className = 'game-details__comment-time';
+            time.dateTime = comment.createdAt;
+            time.textContent = formatRelativeTime(comment.createdAt);
+            const text = document.createElement('p');
+            text.textContent = comment.text;
+            const likes = document.createElement('span');
+            likes.className = 'game-details__comment-likes';
+            likes.textContent = `♡ ${comment.likesCount}`;
+
+            body.append(author, time, text, likes);
+            article.append(avatar, body);
+            item.append(article);
+            return item;
+        }),
+    );
 };
 
 const renderDetails = (
@@ -427,6 +449,7 @@ export const createGameDetailsDialog = (
     );
     let closeTimer: number | undefined;
     let requestController: AbortController | undefined;
+    let commentsController: AbortController | undefined;
     let currentRequest: (() => void) | undefined;
 
     const closeDialog = (): void => {
@@ -438,6 +461,7 @@ export const createGameDetailsDialog = (
         }
 
         requestController?.abort();
+        commentsController?.abort();
         dialog.classList.remove('game-details--visible');
         dialog.classList.add('game-details--closing');
         closeTimer = globalThis.setTimeout(() => {
@@ -481,6 +505,7 @@ export const createGameDetailsDialog = (
         }
 
         requestController?.abort();
+        commentsController?.abort();
         requestController = new AbortController();
         const controller = requestController;
         body.setAttribute('aria-busy', 'true');
@@ -526,6 +551,20 @@ export const createGameDetailsDialog = (
                 throw new Error('The server returned invalid game details.');
             }
             renderDetails(body, heroImage, payload.data, dialog);
+            const commentsSection = body.querySelector<HTMLElement>(
+                '.game-details__comments',
+            );
+            const commentsHeading =
+                commentsSection?.querySelector<HTMLHeadingElement>(
+                    '#game-details-comments-title',
+                );
+            const commentsList =
+                commentsSection?.querySelector<HTMLUListElement>(
+                    '.game-details__comment-list',
+                );
+            if (commentsSection && commentsHeading && commentsList) {
+                void loadComments(gameSlug, commentsHeading, commentsList);
+            }
         } catch {
             if (controller.signal.aborted) {
                 return;
@@ -547,6 +586,76 @@ export const createGameDetailsDialog = (
             );
         }
     };
+
+    async function loadComments(
+        gameSlug: string,
+        heading: HTMLHeadingElement,
+        list: HTMLUListElement,
+    ): Promise<void> {
+        commentsController?.abort();
+        commentsController = new AbortController();
+        const controller = commentsController;
+        const load = (): void => {
+            void loadComments(gameSlug, heading, list);
+        };
+        list.setAttribute('aria-busy', 'true');
+        list.replaceChildren(
+            ...Array.from({ length: 3 }, () => {
+                const skeleton = document.createElement('li');
+                skeleton.className = 'game-details__comment-skeleton';
+                skeleton.setAttribute('aria-hidden', 'true');
+                return skeleton;
+            }),
+        );
+
+        try {
+            const query = new URLSearchParams({
+                limit: '3',
+                sort: 'newest',
+            });
+            const response = await fetch(
+                `${API_BASE_URL}/games/${encodeURIComponent(gameSlug)}/comments?${query.toString()}`,
+                { signal: controller.signal },
+            );
+            if (!response.ok) {
+                throw new Error(
+                    `Request failed with status ${response.status}`,
+                );
+            }
+
+            const payload: unknown = await response.json();
+            if (!isGameComments(payload)) {
+                throw new Error('The server returned invalid game comments.');
+            }
+            if (controller.signal.aborted) {
+                return;
+            }
+
+            renderComments(list, heading, payload);
+        } catch {
+            if (controller.signal.aborted) {
+                return;
+            }
+
+            list.removeAttribute('aria-busy');
+            const error = document.createElement('li');
+            error.className = 'game-details__comments-error';
+            error.setAttribute('role', 'alert');
+            const message = document.createElement('p');
+            message.textContent = 'Comments could not be loaded.';
+            const retry = document.createElement('button');
+            retry.className = 'game-details__retry';
+            retry.type = 'button';
+            retry.textContent = 'Try again';
+            retry.addEventListener('click', load);
+            error.append(message, retry);
+            list.replaceChildren(error);
+            snackbar.show(
+                'Unable to load comments. Please try again.',
+                'error',
+            );
+        }
+    }
 
     return {
         element: dialog,

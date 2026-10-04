@@ -467,6 +467,49 @@
     overflow-wrap: anywhere;
 }
 
+.game-details__comment-body h4 {
+    display: inline;
+    margin-right: tokens.$size-2;
+}
+
+.game-details__comment-time {
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-xs;
+}
+
+.game-details__comment-likes {
+    display: inline-block;
+    margin-top: tokens.$size-2;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$font-size-xs;
+}
+
+.game-details__comment-skeleton {
+    min-height: 92px;
+    border-radius: tokens.$radius-md;
+    background: linear-gradient(
+        90deg,
+        tokens.$color-surface,
+        rgb(255 255 255 / 75%),
+        tokens.$color-surface
+    );
+    background-size: 200% 100%;
+    animation: game-details-skeleton 1.2s ease-in-out infinite;
+}
+
+.game-details__comments-empty,
+.game-details__comments-error {
+    padding: tokens.$size-4;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text-secondary;
+    text-align: center;
+}
+
+.game-details__comments-error p {
+    margin: 0 0 tokens.$size-3;
+}
+
 .game-details__like {
     display: inline-flex;
     align-items: center;
@@ -506,6 +549,10 @@ body.game-details-open {
     }
 
     .game-details__skeleton {
+        animation: none;
+    }
+
+    .game-details__comment-skeleton {
         animation: none;
     }
 }
