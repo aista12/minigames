@@ -33,11 +33,10 @@ const isCategory = (value: unknown): value is Category => {
 };
 
 const sortOptions = [
-    'Recommended',
-    'Most Popular',
-    'Newest',
-    'Top Rated',
-    'A–Z',
+    { label: 'Recommended', value: 'rating-desc' },
+    { label: 'Lowest Rated', value: 'rating-asc' },
+    { label: 'Name: A–Z', value: 'name-asc' },
+    { label: 'Name: Z–A', value: 'name-desc' },
 ];
 
 export type InteractiveLibraryGamesSection = HTMLElement & {
@@ -79,11 +78,14 @@ export const createLibraryGamesSection = (
     sortButton.setAttribute('aria-haspopup', 'listbox');
     sortButton.setAttribute('aria-expanded', 'false');
     sortButton.setAttribute('aria-controls', 'library-sort-options');
-    sortButton.setAttribute('aria-label', `Sort games: ${sortOptions[0]}`);
+    sortButton.setAttribute(
+        'aria-label',
+        `Sort games: ${sortOptions[0].label}`,
+    );
 
     const selectedSort = document.createElement('span');
     selectedSort.className = 'library-sort__value';
-    selectedSort.textContent = sortOptions[0];
+    selectedSort.textContent = sortOptions[0].label;
 
     const arrow = document.createElement('span');
     arrow.className = 'library-sort__arrow';
@@ -107,7 +109,8 @@ export const createLibraryGamesSection = (
             'library-sort__option--selected',
             index === 0,
         );
-        optionButton.textContent = option;
+        optionButton.textContent = option.label;
+        optionButton.dataset.sort = option.value;
         options.append(optionButton);
     }
 
@@ -133,7 +136,7 @@ export const createLibraryGamesSection = (
 
     let categoriesController: AbortController | undefined;
     let selectedCategory = 'all';
-    const selectedSortValue = 'rating-desc';
+    let selectedSortValue = 'rating-desc';
     let categories: Category[] = [];
 
     const closeSortOptions = (shouldReturnFocus: boolean): void => {
@@ -231,6 +234,13 @@ export const createLibraryGamesSection = (
             return;
         }
 
+        const nextSort = option.dataset.sort;
+        if (!nextSort || nextSort === selectedSortValue) {
+            closeSortOptions(true);
+            return;
+        }
+
+        selectedSortValue = nextSort;
         for (const sortOption of options.querySelectorAll<HTMLButtonElement>(
             '.library-sort__option',
         )) {
@@ -247,6 +257,7 @@ export const createLibraryGamesSection = (
             `Sort games: ${selectedSort.textContent}`,
         );
         closeSortOptions(true);
+        onFilterChange(selectedCategory, selectedSortValue);
     });
 
     document.addEventListener('click', (event) => {
