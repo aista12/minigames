@@ -1,6 +1,9 @@
 import '../shared/styles/globals.scss';
 import { createLibraryGamesSection } from '../pages/library/games-section/games-section';
-import { createLibraryCardsSection } from '../pages/library/cards/cards';
+import {
+    createLibraryCardsSection,
+    type InteractiveLibraryCardsSection,
+} from '../pages/library/cards/cards';
 import { createLibraryPagination } from '../pages/library/pagination/pagination';
 import { createCarousel } from '../pages/home/carousel/carousel';
 import { createDeveloperCta } from '../pages/home/developer-cta/developer-cta';
@@ -21,7 +24,8 @@ const main = document.createElement('main');
 const snackbar = createSnackbar();
 const libraryGamesSection = createLibraryGamesSection();
 const gameDetailsDialog = createGameDetailsDialog();
-const libraryCardsSection = createLibraryCardsSection(gameDetailsDialog.open);
+const libraryCardsSection: InteractiveLibraryCardsSection =
+    createLibraryCardsSection(gameDetailsDialog.open, snackbar);
 const libraryPagination = createLibraryPagination();
 const homeCarouselState: {
     current: ReturnType<typeof createCarousel> | undefined;
@@ -32,6 +36,7 @@ const homeLeaderboardState: {
 
 const renderPage = (page: SitePage): void => {
     if (page === 'home') {
+        libraryCardsSection.destroy();
         homeCarouselState.current ??= createCarousel(
             gameDetailsDialog.open,
             snackbar,
@@ -44,6 +49,7 @@ const renderPage = (page: SitePage): void => {
             createDeveloperCta(),
         );
     } else {
+        libraryCardsSection.load();
         homeCarouselState.current?.destroy();
         homeCarouselState.current = undefined;
         homeLeaderboardState.current?.destroy();
