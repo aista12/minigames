@@ -40,7 +40,7 @@ const gameCardImages = import.meta.glob<string>('../assets/*-card.jpg', {
 const cardsPerPage = 6;
 
 export type InteractiveLibraryCardsSection = HTMLElement & {
-    load: () => void;
+    load: (category: string, sort: string) => void;
     destroy: () => void;
 };
 
@@ -175,7 +175,11 @@ export const createLibraryCardsSection = (
     section.append(heading, list);
 
     let controller: AbortController | undefined;
-    section.load = (): void => {
+    let selectedCategory = 'all';
+    let selectedSort = 'rating-desc';
+    section.load = (category, sort): void => {
+        selectedCategory = category;
+        selectedSort = sort;
         void loadGames();
     };
     section.destroy = (): void => {
@@ -221,7 +225,12 @@ export const createLibraryCardsSection = (
 
         try {
             const games = await fetchCollection(
-                `/games?limit=${cardsPerPage}`,
+                `/games?${new URLSearchParams({
+                    category: selectedCategory,
+                    sort: selectedSort,
+                    page: '1',
+                    limit: String(cardsPerPage),
+                })}`,
                 isLibraryGame,
                 requestController.signal,
             );

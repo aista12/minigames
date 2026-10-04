@@ -22,10 +22,13 @@ const app = document.createElement('div');
 app.id = 'app';
 const main = document.createElement('main');
 const snackbar = createSnackbar();
-const libraryGamesSection = createLibraryGamesSection();
 const gameDetailsDialog = createGameDetailsDialog();
 const libraryCardsSection: InteractiveLibraryCardsSection =
     createLibraryCardsSection(gameDetailsDialog.open, snackbar);
+const libraryGamesSection = createLibraryGamesSection(
+    (category, sort) => libraryCardsSection.load(category, sort),
+    snackbar,
+);
 const libraryPagination = createLibraryPagination();
 const homeCarouselState: {
     current: ReturnType<typeof createCarousel> | undefined;
@@ -36,6 +39,7 @@ const homeLeaderboardState: {
 
 const renderPage = (page: SitePage): void => {
     if (page === 'home') {
+        libraryGamesSection.destroy();
         libraryCardsSection.destroy();
         homeCarouselState.current ??= createCarousel(
             gameDetailsDialog.open,
@@ -49,7 +53,7 @@ const renderPage = (page: SitePage): void => {
             createDeveloperCta(),
         );
     } else {
-        libraryCardsSection.load();
+        libraryGamesSection.load();
         homeCarouselState.current?.destroy();
         homeCarouselState.current = undefined;
         homeLeaderboardState.current?.destroy();
