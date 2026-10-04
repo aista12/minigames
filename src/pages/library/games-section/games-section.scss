@@ -143,6 +143,53 @@
     min-width: 100%;
 }
 
+.library-games__category-state {
+    display: flex;
+    align-items: center;
+    gap: tokens.$size-3;
+    width: 100%;
+    min-height: tokens.$button-height-md;
+}
+
+.library-games__category-state--error {
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: tokens.$size-3;
+    border: tokens.$border-width-strong solid tokens.$color-error;
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-surface;
+    color: tokens.$color-text;
+}
+
+.library-games__category-state--error p {
+    margin: 0;
+}
+
+.library-games__category-retry {
+    padding: tokens.$size-2 tokens.$size-4;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-sm;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    cursor: pointer;
+    font: inherit;
+    font-weight: tokens.$font-weight-semibold;
+}
+
+.library-games__chip-skeleton {
+    flex: 0 0 88px;
+    height: tokens.$button-height-md;
+    border-radius: tokens.$radius-full;
+    animation: library-category-pulse 1.2s ease-in-out infinite alternate;
+    background-color: rgb(36 33 69 / 12%);
+}
+
+@keyframes library-category-pulse {
+    to {
+        opacity: 0.45;
+    }
+}
+
 .library-games__chip {
     flex: 0 0 auto;
     min-height: tokens.$button-height-md;
@@ -196,6 +243,12 @@
 
     .library-games__categories {
         gap: tokens.$size-4;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .library-games__chip-skeleton {
+        animation: none;
     }
 }
 

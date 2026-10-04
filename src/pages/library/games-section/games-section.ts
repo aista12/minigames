@@ -1,25 +1,56 @@
 import './games-section.scss';
+import { fetchCollection } from '../../../shared/api';
+import type { Snackbar } from '../../../shared/snackbar';
 
-const categories = [
-    'All Games',
-    'Puzzle',
-    'Card',
-    'Match',
-    'Farm',
-    'Strategy',
-    'Arcade',
-];
+type Category = {
+    slug: string;
+    label: string;
+    isDefault: boolean;
+};
+
+const allowedCategorySlugs = new Set([
+    'all',
+    'puzzle',
+    'card',
+    'match',
+    'farm',
+    'strategy',
+    'arcade',
+]);
+
+const isCategory = (value: unknown): value is Category => {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+
+    const category = value as Record<string, unknown>;
+    return (
+        typeof category.slug === 'string' &&
+        allowedCategorySlugs.has(category.slug) &&
+        typeof category.label === 'string' &&
+        typeof category.isDefault === 'boolean'
+    );
+};
 
 const sortOptions = [
-    'Recommended',
-    'Most Popular',
-    'Newest',
-    'Top Rated',
-    'A–Z',
+    { label: 'Recommended', value: 'rating-desc' },
+    { label: 'Lowest Rated', value: 'rating-asc' },
+    { label: 'Name: A–Z', value: 'name-asc' },
+    { label: 'Name: Z–A', value: 'name-desc' },
 ];
 
-export const createLibraryGamesSection = (): HTMLElement => {
-    const section = document.createElement('section');
+export type InteractiveLibraryGamesSection = HTMLElement & {
+    load: () => void;
+    destroy: () => void;
+};
+
+export const createLibraryGamesSection = (
+    onFilterChange: (category: string, sort: string) => void,
+    snackbar: Snackbar,
+): InteractiveLibraryGamesSection => {
+    const section = document.createElement(
+        'section',
+    ) as InteractiveLibraryGamesSection;
     section.className = 'library-games';
     section.setAttribute('aria-labelledby', 'library-games-title');
 
@@ -47,11 +78,14 @@ export const createLibraryGamesSection = (): HTMLElement => {
     sortButton.setAttribute('aria-haspopup', 'listbox');
     sortButton.setAttribute('aria-expanded', 'false');
     sortButton.setAttribute('aria-controls', 'library-sort-options');
-    sortButton.setAttribute('aria-label', `Sort games: ${sortOptions[0]}`);
+    sortButton.setAttribute(
+        'aria-label',
+        `Sort games: ${sortOptions[0].label}`,
+    );
 
     const selectedSort = document.createElement('span');
     selectedSort.className = 'library-sort__value';
-    selectedSort.textContent = sortOptions[0];
+    selectedSort.textContent = sortOptions[0].label;
 
     const arrow = document.createElement('span');
     arrow.className = 'library-sort__arrow';
@@ -75,7 +109,8 @@ export const createLibraryGamesSection = (): HTMLElement => {
             'library-sort__option--selected',
             index === 0,
         );
-        optionButton.textContent = option;
+        optionButton.textContent = option.label;
+        optionButton.dataset.sort = option.value;
         options.append(optionButton);
     }
 
@@ -93,24 +128,76 @@ export const createLibraryGamesSection = (): HTMLElement => {
     categoryList.setAttribute('role', 'group');
     categoryList.setAttribute('aria-label', 'Game categories');
 
-    for (const [index, category] of categories.entries()) {
-        const chip = document.createElement('button');
-        chip.className = 'library-games__chip';
-        chip.type = 'button';
-        chip.textContent = category;
-        chip.setAttribute('aria-pressed', String(index === 0));
-        chip.classList.toggle('library-games__chip--active', index === 0);
-        categoryList.append(chip);
-    }
+    const categoryState = document.createElement('div');
+    categoryState.className = 'library-games__category-state';
 
     categoryScroller.append(categoryList);
     section.append(headingRow, categoryScroller);
+
+    let categoriesController: AbortController | undefined;
+    let selectedCategory = 'all';
+    let selectedSortValue = 'rating-desc';
+    let categories: Category[] = [];
 
     const closeSortOptions = (shouldReturnFocus: boolean): void => {
         options.hidden = true;
         sortButton.setAttribute('aria-expanded', 'false');
         if (shouldReturnFocus) {
             sortButton.focus();
+        }
+    };
+
+    const renderCategoryLoading = (): void => {
+        categoryScroller.setAttribute('aria-busy', 'true');
+        categoryState.className =
+            'library-games__category-state library-games__category-state--loading';
+        categoryState.setAttribute('aria-label', 'Loading game categories');
+        categoryState.replaceChildren();
+        for (let index = 0; index < 7; index += 1) {
+            const chip = document.createElement('span');
+            chip.className = 'library-games__chip-skeleton';
+            chip.setAttribute('aria-hidden', 'true');
+            categoryState.append(chip);
+        }
+        categoryScroller.replaceChildren(categoryState);
+    };
+
+    const renderCategoryError = (): void => {
+        categoryScroller.removeAttribute('aria-busy');
+        categoryState.className =
+            'library-games__category-state library-games__category-state--error';
+        categoryState.removeAttribute('aria-label');
+
+        const message = document.createElement('p');
+        message.textContent = 'Game categories could not be loaded.';
+
+        const retry = document.createElement('button');
+        retry.className = 'library-games__category-retry';
+        retry.type = 'button';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', () => {
+            void loadCategories();
+        });
+
+        categoryState.replaceChildren(message, retry);
+        categoryScroller.replaceChildren(categoryState);
+    };
+
+    const renderCategories = (): void => {
+        categoryScroller.removeAttribute('aria-busy');
+        categoryList.replaceChildren();
+        categoryScroller.replaceChildren(categoryList);
+
+        for (const category of categories) {
+            const chip = document.createElement('button');
+            const isActive = category.slug === selectedCategory;
+            chip.className = 'library-games__chip';
+            chip.type = 'button';
+            chip.textContent = category.label;
+            chip.dataset.category = category.slug;
+            chip.setAttribute('aria-pressed', String(isActive));
+            chip.classList.toggle('library-games__chip--active', isActive);
+            categoryList.append(chip);
         }
     };
 
@@ -121,17 +208,14 @@ export const createLibraryGamesSection = (): HTMLElement => {
         }
 
         const chip = target.closest<HTMLButtonElement>('.library-games__chip');
-        if (chip) {
-            for (const categoryChip of categoryList.querySelectorAll<HTMLButtonElement>(
-                '.library-games__chip',
-            )) {
-                const isActive = categoryChip === chip;
-                categoryChip.classList.toggle(
-                    'library-games__chip--active',
-                    isActive,
-                );
-                categoryChip.setAttribute('aria-pressed', String(isActive));
+        if (chip?.dataset.category) {
+            if (chip.dataset.category === selectedCategory) {
+                return;
             }
+
+            selectedCategory = chip.dataset.category;
+            renderCategories();
+            onFilterChange(selectedCategory, selectedSortValue);
             return;
         }
 
@@ -150,6 +234,13 @@ export const createLibraryGamesSection = (): HTMLElement => {
             return;
         }
 
+        const nextSort = option.dataset.sort;
+        if (!nextSort || nextSort === selectedSortValue) {
+            closeSortOptions(true);
+            return;
+        }
+
+        selectedSortValue = nextSort;
         for (const sortOption of options.querySelectorAll<HTMLButtonElement>(
             '.library-sort__option',
         )) {
@@ -166,6 +257,7 @@ export const createLibraryGamesSection = (): HTMLElement => {
             `Sort games: ${selectedSort.textContent}`,
         );
         closeSortOptions(true);
+        onFilterChange(selectedCategory, selectedSortValue);
     });
 
     document.addEventListener('click', (event) => {
@@ -183,6 +275,53 @@ export const createLibraryGamesSection = (): HTMLElement => {
             closeSortOptions(true);
         }
     });
+
+    section.load = (): void => {
+        void loadCategories();
+    };
+    section.destroy = (): void => {
+        categoriesController?.abort();
+    };
+
+    async function loadCategories(): Promise<void> {
+        categoriesController?.abort();
+        categoriesController = new AbortController();
+        const requestController = categoriesController;
+        renderCategoryLoading();
+
+        try {
+            const response = await fetchCollection(
+                '/categories',
+                isCategory,
+                requestController.signal,
+            );
+            if (requestController.signal.aborted) {
+                return;
+            }
+
+            const defaults = response.filter((category) => category.isDefault);
+            if (defaults.length !== 1 || response.length === 0) {
+                throw new Error(
+                    'The categories response must contain exactly one default category.',
+                );
+            }
+
+            categories = response;
+            selectedCategory = defaults[0].slug;
+            renderCategories();
+            onFilterChange(selectedCategory, selectedSortValue);
+        } catch {
+            if (requestController.signal.aborted) {
+                return;
+            }
+
+            renderCategoryError();
+            snackbar.show(
+                'Unable to load game categories. Please try again.',
+                'error',
+            );
+        }
+    }
 
     return section;
 };
