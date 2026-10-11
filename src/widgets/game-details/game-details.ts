@@ -30,6 +30,7 @@ type GameComment = {
     authorName: string;
     text: string;
     likesCount: number;
+    isLikedByCurrentUser: boolean;
     createdAt: string;
 };
 
@@ -44,6 +45,20 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null;
 
 const isGameComment = (value: unknown): value is GameComment =>
+    isRecord(value) &&
+    typeof value.commentId === 'string' &&
+    typeof value.authorName === 'string' &&
+    typeof value.text === 'string' &&
+    typeof value.likesCount === 'number' &&
+    Number.isSafeInteger(value.likesCount) &&
+    value.likesCount >= 0 &&
+    typeof value.isLikedByCurrentUser === 'boolean' &&
+    typeof value.createdAt === 'string' &&
+    !Number.isNaN(Date.parse(value.createdAt));
+
+const isCreatedGameComment = (
+    value: unknown,
+): value is Omit<GameComment, 'isLikedByCurrentUser'> =>
     isRecord(value) &&
     typeof value.commentId === 'string' &&
     typeof value.authorName === 'string' &&
@@ -449,6 +464,11 @@ const renderComments = (
     list: HTMLUListElement,
     heading: HTMLHeadingElement,
     comments: GameComments,
+    onLike: (
+        commentId: string,
+        button: HTMLButtonElement,
+        count: HTMLElement,
+    ) => void,
 ): void => {
     let avatarAssignments = commentAvatarAssignments.get(list);
     if (!avatarAssignments) {
@@ -499,11 +519,36 @@ const renderComments = (
             time.textContent = formatRelativeTime(comment.createdAt);
             const text = document.createElement('p');
             text.textContent = comment.text;
+            const likeButton = document.createElement('button');
+            likeButton.className = 'game-details__like';
+            likeButton.type = 'button';
+            likeButton.setAttribute(
+                'aria-label',
+                comment.isLikedByCurrentUser
+                    ? `Unlike ${comment.authorName}'s comment`
+                    : `Like ${comment.authorName}'s comment`,
+            );
+            likeButton.setAttribute(
+                'aria-pressed',
+                String(comment.isLikedByCurrentUser),
+            );
+            likeButton.classList.toggle(
+                'game-details__like--active',
+                comment.isLikedByCurrentUser,
+            );
+            const icon = document.createElement('span');
+            icon.className = 'game-details__like-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = comment.isLikedByCurrentUser ? '♥' : '♡';
             const likes = document.createElement('span');
             likes.className = 'game-details__comment-likes';
-            likes.textContent = `♡ ${comment.likesCount}`;
+            likes.textContent = String(comment.likesCount);
+            likeButton.append(icon, likes);
+            likeButton.addEventListener('click', () => {
+                onLike(comment.commentId, likeButton, likes);
+            });
 
-            body.append(author, time, text, likes);
+            body.append(author, time, text, likeButton);
             article.append(avatar, body);
             item.append(article);
             return item;
@@ -591,6 +636,97 @@ export const createGameDetailsDialog = (
     let onUserClose: (() => void) | undefined;
     let isFavoriteRequestPending = false;
     let isCommentRequestPending = false;
+    const pendingCommentLikes = new Set<string>();
+
+    const likeComment = (
+        commentId: string,
+        button: HTMLButtonElement,
+        count: HTMLElement,
+    ): void => {
+        const session = getActiveSession();
+        if (!session) {
+            snackbar.show('Sign in to like comments.', 'error');
+            onGuestFavorite();
+            return;
+        }
+        if (pendingCommentLikes.has(commentId)) {
+            return;
+        }
+
+        const icon = button.querySelector<HTMLElement>(
+            '.game-details__like-icon',
+        );
+        if (!icon) {
+            snackbar.show('The comment like control is unavailable.', 'error');
+            return;
+        }
+
+        const wasLiked = button.getAttribute('aria-pressed') === 'true';
+        pendingCommentLikes.add(commentId);
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        icon.textContent = '…';
+
+        void (async () => {
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/comments/${encodeURIComponent(commentId)}/like`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ userEmail: session.email }),
+                    },
+                );
+                if (!response.ok) {
+                    throw new Error(
+                        `Comment like request failed with status ${response.status}.`,
+                    );
+                }
+
+                const payload: unknown = await response.json();
+                if (
+                    !isRecord(payload) ||
+                    !isRecord(payload.data) ||
+                    typeof payload.data.isLikedByCurrentUser !== 'boolean' ||
+                    typeof payload.data.likesCount !== 'number' ||
+                    !Number.isSafeInteger(payload.data.likesCount) ||
+                    payload.data.likesCount < 0
+                ) {
+                    throw new Error(
+                        'The server returned an invalid comment-like response.',
+                    );
+                }
+
+                const isLiked = payload.data.isLikedByCurrentUser;
+                button.setAttribute('aria-pressed', String(isLiked));
+                button.setAttribute(
+                    'aria-label',
+                    `${isLiked ? 'Unlike' : 'Like'} comment`,
+                );
+                button.classList.toggle('game-details__like--active', isLiked);
+                icon.textContent = isLiked ? '♥' : '♡';
+                count.textContent = String(payload.data.likesCount);
+                snackbar.show(
+                    isLiked ? 'Comment liked.' : 'Comment unliked.',
+                    'success',
+                );
+            } catch (error) {
+                icon.textContent = wasLiked ? '♥' : '♡';
+                snackbar.show(
+                    error instanceof Error
+                        ? `${error.message} The result may be unknown; check the current state before trying again.`
+                        : 'Comment like result is unknown. Check its state before trying again.',
+                    'error',
+                );
+            } finally {
+                pendingCommentLikes.delete(commentId);
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            }
+        })();
+    };
 
     const toggleFavorite = (
         gameSlug: string,
@@ -850,7 +986,7 @@ export const createGameDetailsDialog = (
         }
         if (
             !isRecord(payload) ||
-            !isGameComment(payload.data) ||
+            !isCreatedGameComment(payload.data) ||
             payload.data.authorName !== authorName ||
             payload.data.text !== text
         ) {
@@ -1035,7 +1171,7 @@ export const createGameDetailsDialog = (
                 return;
             }
 
-            renderComments(list, heading, payload);
+            renderComments(list, heading, payload, likeComment);
         } catch {
             if (controller.signal.aborted) {
                 return;

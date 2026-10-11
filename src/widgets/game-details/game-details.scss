@@ -598,6 +598,11 @@
     color: tokens.$color-text;
 }
 
+.game-details__like:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
 .game-details__like--active .game-details__like-icon {
     color: tokens.$color-primary-active;
 }
