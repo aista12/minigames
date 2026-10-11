@@ -63,8 +63,12 @@ const app = document.createElement('div');
 app.id = 'app';
 const main = document.createElement('main');
 const snackbar = createSnackbar();
+const headerState: { current: InteractiveHeader | undefined } = {
+    current: undefined,
+};
 const appSession = createAppSession(
     () => {
+        headerState.current?.setUserProfile(undefined);
         snackbar.show(
             'Your session expired. You are now in guest mode.',
             'error',
@@ -77,8 +81,28 @@ const appSession = createAppSession(
         );
     },
 );
-const sessionInitialization = appSession.restore();
-const gameDetailsDialog = createGameDetailsDialog(snackbar);
+const sessionInitializationState = { isInitialized: false };
+const sessionInitialization = (async () => {
+    const session = await appSession.restore();
+    sessionInitializationState.isInitialized = true;
+    return session;
+})();
+const protectedAuthState = { shouldRestoreGame: false };
+const gameDetailsDialog = createGameDetailsDialog(snackbar, () => {
+    if (appSession.getValidSession()) {
+        return true;
+    }
+
+    protectedAuthState.shouldRestoreGame = routerState.route.game !== undefined;
+    navigate({
+        ...routerState.route,
+        auth: 'login',
+        game: protectedAuthState.shouldRestoreGame
+            ? routerState.route.game
+            : undefined,
+    });
+    return false;
+});
 const libraryPagination: InteractiveLibraryPagination =
     createLibraryPagination();
 const routerState: {
@@ -98,9 +122,42 @@ const routerState: {
     activeGame: undefined,
     activeAuth: undefined,
 };
+protectedAuthState.shouldRestoreGame = Boolean(
+    routerState.route.game && routerState.route.auth,
+);
+
+const guardAuthenticatedAuthRoute = (next: AppRoute): AppRoute => {
+    if (!next.auth || !appSession.getValidSession()) {
+        return next;
+    }
+
+    const currentUrl = new URL(globalThis.location.href);
+    currentUrl.searchParams.delete('auth');
+    globalThis.history.replaceState(
+        undefined,
+        '',
+        `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+    );
+    snackbar.show('You are already authenticated.', 'success');
+    return readRoute(
+        currentUrl.pathname,
+        currentUrl.search,
+        import.meta.env.BASE_URL,
+    );
+};
 
 const navigate = (next: AppRoute, isReplace = false): void => {
-    appSession.getValidSession();
+    if (!sessionInitializationState.isInitialized && next.auth) {
+        void sessionInitialization.then(() => navigate(next, isReplace));
+        return;
+    }
+
+    const guardedRoute = guardAuthenticatedAuthRoute(next);
+    if (guardedRoute !== next) {
+        applyRoute(guardedRoute);
+        return;
+    }
+
     const url = routeUrl(next, import.meta.env.BASE_URL);
     if (isReplace) {
         globalThis.history.replaceState(undefined, '', url);
@@ -140,6 +197,7 @@ const libraryCardsSection: InteractiveLibraryCardsSection =
             if (page === routerState.route.pageNumber) {
                 return;
             }
+            appSession.getValidSession();
             routerState.route = {
                 ...routerState.route,
                 pageNumber: page,
@@ -253,42 +311,80 @@ function applyRoute(next: AppRoute): void {
         }
     }
 
-    if (routerState.activeGame !== next.game) {
-        routerState.activeGame = next.game;
-        if (next.game) {
-            gameDetailsDialog.open(next.game);
+    const gameToShow = next.auth ? undefined : next.game;
+    if (!gameToShow && routerState.activeGame) {
+        if (next.auth) {
+            gameDetailsDialog.closeImmediately();
         } else {
             gameDetailsDialog.close();
         }
+        routerState.activeGame = undefined;
     }
 
     if (routerState.activeAuth === next.auth) {
+        if (gameToShow && routerState.activeGame !== gameToShow) {
+            routerState.activeGame = gameToShow;
+            gameDetailsDialog.open(gameToShow);
+        }
+        if (!next.auth && !next.game) {
+            protectedAuthState.shouldRestoreGame = false;
+        }
         return;
     }
     routerState.activeAuth = next.auth;
-    header.setAuthMode(next.auth);
+    headerState.current?.setAuthMode(
+        next.auth,
+        !next.auth && gameToShow !== undefined,
+    );
+    if (gameToShow && routerState.activeGame !== gameToShow) {
+        routerState.activeGame = gameToShow;
+        gameDetailsDialog.open(gameToShow);
+    }
+    if (!next.auth && !next.game) {
+        protectedAuthState.shouldRestoreGame = false;
+    }
 }
 
 const header: InteractiveHeader = createHeader(
     navigatePage,
     (mode) => {
+        const game = protectedAuthState.shouldRestoreGame
+            ? routerState.route.game
+            : undefined;
+        if (!mode) {
+            protectedAuthState.shouldRestoreGame = false;
+        }
         navigate({
             ...routerState.route,
             auth: mode,
-            game: undefined,
+            game,
         });
     },
     async (profile) => {
+        const game = protectedAuthState.shouldRestoreGame
+            ? routerState.route.game
+            : undefined;
+        protectedAuthState.shouldRestoreGame = false;
         appSession.establish(profile);
+        headerState.current?.setUserProfile(profile);
         navigate({
             ...routerState.route,
             auth: undefined,
-            game: undefined,
+            game,
         });
     },
     snackbar,
     sessionInitialization,
+    () => {
+        header.setUserProfile(undefined);
+        if (routerState.route.game && !routerState.route.auth) {
+            gameDetailsDialog.open(routerState.route.game);
+        }
+        snackbar.show('You have been logged out.', 'success');
+        void appSession.logout();
+    },
 );
+headerState.current = header;
 
 app.append(
     header,
@@ -299,15 +395,20 @@ app.append(
 );
 document.body.append(app);
 
-globalThis.addEventListener('popstate', () => {
-    appSession.getValidSession();
-    applyRoute(
-        readRoute(
-            globalThis.location.pathname,
-            globalThis.location.search,
-            import.meta.env.BASE_URL,
-        ),
+const applyLocationRoute = (): void => {
+    const route = readRoute(
+        globalThis.location.pathname,
+        globalThis.location.search,
+        import.meta.env.BASE_URL,
     );
+    applyRoute(guardAuthenticatedAuthRoute(route));
+};
+
+globalThis.addEventListener('popstate', () => {
+    void sessionInitialization.then(applyLocationRoute);
 });
 
-applyRoute(routerState.route);
+void sessionInitialization.then((session) => {
+    header.setUserProfile(session);
+    applyLocationRoute();
+});

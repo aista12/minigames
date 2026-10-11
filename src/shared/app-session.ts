@@ -18,6 +18,7 @@ type AppSessionManager = {
     restore: () => Promise<AppSession | undefined>;
     establish: (profile: AppSessionProfile) => AppSession;
     getValidSession: () => AppSession | undefined;
+    logout: () => Promise<void>;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -53,7 +54,7 @@ const parseSession = (value: string): AppSession | undefined => {
     }
     if (
         typeof authenticatedAt !== 'number' ||
-        !Number.isFinite(authenticatedAt) ||
+        !Number.isSafeInteger(authenticatedAt) ||
         authenticatedAt <= 0 ||
         authenticatedAt > Date.now() ||
         (avatarUrl !== undefined && typeof avatarUrl !== 'string')
@@ -199,6 +200,7 @@ export const createAppSession = (
             return validatedSession;
         },
         getValidSession: checkExpiration,
+        logout: () => endSession(false),
     };
 
     return manager;

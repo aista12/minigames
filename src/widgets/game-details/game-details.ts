@@ -136,6 +136,7 @@ export type GameDetailsDialog = {
     element: HTMLDialogElement;
     open: (gameSlug: string, userEmail?: string) => void;
     close: () => void;
+    closeImmediately: () => void;
     setCloseHandler: (handler: () => void) => void;
 };
 
@@ -189,6 +190,7 @@ const createState = (
 const createInfoSection = (
     details: GameDetails,
     isFavorite: boolean,
+    canToggleFavorite: () => boolean,
 ): HTMLElement => {
     const section = document.createElement('section');
     section.className = 'game-details__info';
@@ -253,6 +255,9 @@ const createInfoSection = (
         ? '♥ <span>Added to Favorites</span>'
         : '♡ <span>Add to Favorites</span>';
     favoriteButton.addEventListener('click', () => {
+        if (!canToggleFavorite()) {
+            return;
+        }
         const isActive = favoriteButton.getAttribute('aria-pressed') === 'true';
         favoriteButton.setAttribute('aria-pressed', String(!isActive));
         favoriteButton.classList.toggle(
@@ -433,6 +438,7 @@ const renderDetails = (
     heroImage: HTMLImageElement,
     details: GameDetails,
     dialog: HTMLDialogElement,
+    canToggleFavorite: () => boolean,
 ): void => {
     const localImage =
         localHeroImages[`../../pages/library/assets/${details.slug}-hero.jpg`];
@@ -460,7 +466,11 @@ const renderDetails = (
     dialog.removeAttribute('aria-label');
     dialog.setAttribute('aria-labelledby', 'game-details-title');
     body.replaceChildren(
-        createInfoSection(details, details.isLikedByCurrentUser),
+        createInfoSection(
+            details,
+            details.isLikedByCurrentUser,
+            canToggleFavorite,
+        ),
         createRecordsSection(details.topRecords),
         createCommentsSection(),
     );
@@ -468,6 +478,7 @@ const renderDetails = (
 
 export const createGameDetailsDialog = (
     snackbar: Snackbar,
+    canToggleFavorite: () => boolean = () => true,
 ): GameDetailsDialog => {
     const dialog = document.createElement('dialog');
     dialog.className = 'game-details';
@@ -595,7 +606,13 @@ export const createGameDetailsDialog = (
             if (!isGameDetails(payload.data)) {
                 throw new Error('The server returned invalid game details.');
             }
-            renderDetails(body, heroImage, payload.data, dialog);
+            renderDetails(
+                body,
+                heroImage,
+                payload.data,
+                dialog,
+                canToggleFavorite,
+            );
             const commentsSection = body.querySelector<HTMLElement>(
                 '.game-details__comments',
             );
@@ -705,6 +722,22 @@ export const createGameDetailsDialog = (
     return {
         element: dialog,
         close: () => closeDialog(),
+        closeImmediately: () => {
+            if (closeTimer !== undefined) {
+                globalThis.clearTimeout(closeTimer);
+                closeTimer = undefined;
+            }
+            requestController?.abort();
+            commentsController?.abort();
+            if (dialog.open) {
+                dialog.close();
+            }
+            dialog.classList.remove(
+                'game-details--visible',
+                'game-details--closing',
+            );
+            document.body.classList.remove('game-details-open');
+        },
         setCloseHandler: (handler): void => {
             onUserClose = handler;
         },
