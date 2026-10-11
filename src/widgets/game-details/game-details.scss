@@ -371,9 +371,28 @@
     margin-bottom: tokens.$size-6;
 }
 
+.game-details__comment-identity {
+    display: flex;
+    align-items: center;
+    gap: tokens.$size-2;
+    margin-bottom: tokens.$size-2;
+}
+
+.game-details__comment-form-avatar {
+    display: grid;
+    width: tokens.$button-height-md;
+    height: tokens.$button-height-md;
+    flex: 0 0 auto;
+    place-items: center;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-full;
+    background-color: tokens.$color-primary;
+    color: tokens.$color-text;
+    font-weight: tokens.$font-weight-bold;
+}
+
 .game-details__comment-label {
     display: block;
-    margin-bottom: tokens.$size-2;
     color: tokens.$color-text-secondary;
     font-size: tokens.$font-size-sm;
     font-weight: tokens.$font-weight-medium;
@@ -392,7 +411,7 @@
     min-height: tokens.$button-height-md;
     max-height: 88px;
     padding: tokens.$size-2 tokens.$size-3;
-    overflow-y: hidden;
+    overflow-y: auto;
     resize: none;
     border: tokens.$border-width-thin solid tokens.$color-border;
     border-radius: tokens.$radius-md;

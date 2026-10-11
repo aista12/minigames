@@ -172,7 +172,7 @@ const navigate = (next: AppRoute, isReplace = false): void => {
 
 const openGameDetails = (gameSlug: string): void => {
     const session = appSession.getValidSession();
-    gameDetailsDialog.open(gameSlug, session?.email);
+    gameDetailsDialog.open(gameSlug, session);
 };
 
 const navigatePage = (page: SitePage): void => {

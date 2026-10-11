@@ -135,7 +135,7 @@ const formatRelativeTime = (dateValue: string): string => {
 
 export type GameDetailsDialog = {
     element: HTMLDialogElement;
-    open: (gameSlug: string, userEmail?: string) => void;
+    open: (gameSlug: string, session?: AppSession) => void;
     close: () => void;
     closeImmediately: () => void;
     setCloseHandler: (handler: () => void) => void;
@@ -318,7 +318,22 @@ const createRecordsSection = (
     return section;
 };
 
-const createCommentsSection = (): HTMLElement => {
+const getCommentAuthorName = (session: AppSession): string => {
+    const displayName = session.displayName.trim();
+    if (displayName.length >= 2 && displayName.length <= 30) {
+        return displayName;
+    }
+
+    const emailName = session.email.split('@', 1)[0]?.trim();
+    return emailName && emailName.length >= 2 && emailName.length <= 30
+        ? emailName
+        : 'Player';
+};
+
+const createCommentsSection = (
+    session: AppSession | undefined,
+    onSubmit: (form: HTMLFormElement) => void,
+): HTMLElement => {
     const section = document.createElement('section');
     section.className = 'game-details__comments';
     section.setAttribute('aria-labelledby', 'game-details-comments-title');
@@ -331,10 +346,21 @@ const createCommentsSection = (): HTMLElement => {
     form.className = 'game-details__comment-form';
     form.setAttribute('aria-label', 'Add a comment');
 
+    const identity = document.createElement('div');
+    identity.className = 'game-details__comment-identity';
+    const avatar = document.createElement('span');
+    avatar.className = 'game-details__comment-form-avatar';
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.textContent = session
+        ? ([...getCommentAuthorName(session)][0]?.toLocaleUpperCase() ?? '?')
+        : '?';
     const label = document.createElement('label');
     label.className = 'game-details__comment-label';
     label.htmlFor = 'game-details-comment';
-    label.textContent = 'Share your thoughts';
+    label.textContent = session
+        ? `Share your thoughts as ${getCommentAuthorName(session)}`
+        : 'Share your thoughts';
+    identity.append(avatar, label);
 
     const compose = document.createElement('div');
     compose.className = 'game-details__comment-compose';
@@ -343,23 +369,54 @@ const createCommentsSection = (): HTMLElement => {
     input.id = 'game-details-comment';
     input.className = 'game-details__comment-input';
     input.rows = 1;
+    input.maxLength = 500;
     input.placeholder = 'Write a comment...';
-    input.disabled = true;
-    input.setAttribute('aria-describedby', 'game-details-comment-note');
+    input.disabled = session === undefined;
 
     const submit = document.createElement('button');
     submit.className = 'game-details__comment-submit';
-    submit.type = 'button';
+    submit.type = 'submit';
     submit.disabled = true;
-    submit.setAttribute('aria-label', 'Commenting unavailable');
+    submit.setAttribute(
+        'aria-label',
+        session ? 'Send comment' : 'Sign in to comment',
+    );
     submit.textContent = '➤';
 
     const note = document.createElement('p');
     note.className = 'game-details__comment-note';
     note.id = 'game-details-comment-note';
-    note.textContent = 'Commenting will be available in a future update.';
+    note.setAttribute('role', 'status');
+    note.textContent = session
+        ? 'Write up to 500 characters.'
+        : 'Sign in to share a comment.';
+    input.setAttribute('aria-describedby', note.id);
     compose.append(input, submit);
-    form.append(label, compose, note);
+    form.append(identity, compose, note);
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        onSubmit(form);
+    });
+    input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        const maxHeight = Number(
+            getComputedStyle(input).maxHeight.replace('px', ''),
+        );
+        input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+        input.style.overflowY =
+            input.scrollHeight > maxHeight ? 'auto' : 'hidden';
+        submit.disabled =
+            session === undefined || input.value.trim().length === 0;
+    });
+    input.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || event.shiftKey || event.isComposing) {
+            return;
+        }
+        event.preventDefault();
+        if (!submit.disabled) {
+            form.requestSubmit();
+        }
+    });
 
     const list = document.createElement('ul');
     list.className = 'game-details__comment-list';
@@ -430,11 +487,13 @@ const renderDetails = (
     heroImage: HTMLImageElement,
     details: GameDetails,
     dialog: HTMLDialogElement,
+    session: AppSession | undefined,
     onFavoriteRequested: (
         gameSlug: string,
         button: HTMLButtonElement,
         likes: HTMLElement,
     ) => void,
+    onCommentSubmitted: (gameSlug: string, form: HTMLFormElement) => void,
 ): void => {
     const localImage =
         localHeroImages[`../../pages/library/assets/${details.slug}-hero.jpg`];
@@ -468,7 +527,9 @@ const renderDetails = (
             onFavoriteRequested,
         ),
         createRecordsSection(details.topRecords),
-        createCommentsSection(),
+        createCommentsSection(session, (form) =>
+            onCommentSubmitted(details.slug, form),
+        ),
     );
 };
 
@@ -500,6 +561,7 @@ export const createGameDetailsDialog = (
     let currentRequest: (() => void) | undefined;
     let onUserClose: (() => void) | undefined;
     let isFavoriteRequestPending = false;
+    let isCommentRequestPending = false;
 
     const toggleFavorite = (
         gameSlug: string,
@@ -637,9 +699,162 @@ export const createGameDetailsDialog = (
         document.body.classList.remove('game-details-open');
     });
 
+    async function submitComment(
+        gameSlug: string,
+        form: HTMLFormElement,
+    ): Promise<void> {
+        const session = getActiveSession();
+        if (!session) {
+            snackbar.show('Sign in to post a comment.', 'error');
+            onGuestFavorite();
+            return;
+        }
+        if (isCommentRequestPending) {
+            return;
+        }
+
+        const input = form.querySelector<HTMLTextAreaElement>(
+            '.game-details__comment-input',
+        );
+        const submit = form.querySelector<HTMLButtonElement>(
+            '.game-details__comment-submit',
+        );
+        const note = form.querySelector<HTMLElement>(
+            '.game-details__comment-note',
+        );
+        const section = form.closest<HTMLElement>('.game-details__comments');
+        const heading = section?.querySelector<HTMLHeadingElement>(
+            '#game-details-comments-title',
+        );
+        const list = section?.querySelector<HTMLUListElement>(
+            '.game-details__comment-list',
+        );
+        if (!input || !submit || !note || !heading || !list) {
+            throw new Error('The comment form is not available.');
+        }
+
+        const text = input.value.trim();
+        if (text.length === 0 || text.length > 500) {
+            note.textContent = 'Enter a comment between 1 and 500 characters.';
+            input.focus();
+            return;
+        }
+
+        const authorName = getCommentAuthorName(session);
+        isCommentRequestPending = true;
+        input.disabled = true;
+        submit.disabled = true;
+        submit.setAttribute('aria-busy', 'true');
+        submit.textContent = '…';
+        note.textContent = 'Sending your comment…';
+
+        let response: Response;
+        try {
+            response = await fetch(
+                `${API_BASE_URL}/games/${encodeURIComponent(gameSlug)}/comments`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userEmail: session.email,
+                        authorName,
+                        text,
+                    }),
+                },
+            );
+        } catch {
+            note.textContent =
+                'The result is unknown. Your comment was not automatically resubmitted; check the comments before trying again.';
+            snackbar.show(
+                'Comment result is unknown. It was not automatically resubmitted.',
+                'error',
+            );
+            isCommentRequestPending = false;
+            input.disabled = false;
+            submit.disabled = input.value.trim().length === 0;
+            submit.removeAttribute('aria-busy');
+            submit.textContent = '➤';
+            return;
+        }
+
+        if (response.status !== 201) {
+            const isDefinitiveRejection =
+                response.status >= 400 &&
+                response.status < 500 &&
+                response.status !== 408 &&
+                response.status !== 429;
+            note.textContent = isDefinitiveRejection
+                ? 'Your comment was rejected. Your text is still here; please correct it or try again.'
+                : 'The result is unknown. Your comment was not automatically resubmitted; check the comments before trying again.';
+            snackbar.show(
+                isDefinitiveRejection
+                    ? `Comment was rejected (HTTP ${response.status}).`
+                    : 'Comment result is unknown. It was not automatically resubmitted.',
+                'error',
+            );
+            isCommentRequestPending = false;
+            input.disabled = false;
+            submit.disabled = input.value.trim().length === 0;
+            submit.removeAttribute('aria-busy');
+            submit.textContent = '➤';
+            return;
+        }
+
+        let payload: unknown;
+        try {
+            payload = await response.json();
+        } catch {
+            note.textContent =
+                'Your comment may have been posted, but the response was invalid. Check the comments before trying again.';
+            snackbar.show(
+                'Comment may have been posted, but its result could not be confirmed.',
+                'error',
+            );
+            isCommentRequestPending = false;
+            input.disabled = false;
+            submit.disabled = input.value.trim().length === 0;
+            submit.removeAttribute('aria-busy');
+            submit.textContent = '➤';
+            return;
+        }
+        if (
+            !isRecord(payload) ||
+            !isGameComment(payload.data) ||
+            payload.data.authorName !== authorName ||
+            payload.data.text !== text
+        ) {
+            note.textContent =
+                'Your comment may have been posted, but the response was invalid. Check the comments before trying again.';
+            snackbar.show(
+                'Comment may have been posted, but its result could not be confirmed.',
+                'error',
+            );
+            isCommentRequestPending = false;
+            input.disabled = false;
+            submit.disabled = input.value.trim().length === 0;
+            submit.removeAttribute('aria-busy');
+            submit.textContent = '➤';
+            return;
+        }
+
+        input.value = '';
+        input.style.height = '';
+        input.style.overflowY = '';
+        input.disabled = false;
+        submit.disabled = true;
+        submit.removeAttribute('aria-busy');
+        submit.textContent = '➤';
+        note.textContent = 'Comment posted.';
+        snackbar.show('Comment posted.', 'success');
+        isCommentRequestPending = false;
+        await loadComments(gameSlug, heading, list, session.email);
+    }
+
     const loadDetails = async (
         gameSlug: string,
-        userEmail: string | undefined,
+        session: AppSession | undefined,
     ): Promise<void> => {
         if (!body || !heroImage) {
             return;
@@ -658,8 +873,8 @@ export const createGameDetailsDialog = (
 
         try {
             const query = new URLSearchParams();
-            if (userEmail?.trim()) {
-                query.set('userEmail', userEmail.trim());
+            if (session?.email.trim()) {
+                query.set('userEmail', session.email.trim());
             }
             const queryString = query.size > 0 ? `?${query.toString()}` : '';
             const response = await fetch(
@@ -696,7 +911,11 @@ export const createGameDetailsDialog = (
                 heroImage,
                 payload.data,
                 dialog,
+                session,
                 toggleFavorite,
+                (slug, form) => {
+                    void submitComment(slug, form);
+                },
             );
             const commentsSection = body.querySelector<HTMLElement>(
                 '.game-details__comments',
@@ -710,7 +929,12 @@ export const createGameDetailsDialog = (
                     '.game-details__comment-list',
                 );
             if (commentsSection && commentsHeading && commentsList) {
-                void loadComments(gameSlug, commentsHeading, commentsList);
+                void loadComments(
+                    gameSlug,
+                    commentsHeading,
+                    commentsList,
+                    session?.email,
+                );
             }
         } catch {
             if (controller.signal.aborted) {
@@ -738,12 +962,13 @@ export const createGameDetailsDialog = (
         gameSlug: string,
         heading: HTMLHeadingElement,
         list: HTMLUListElement,
+        userEmail?: string,
     ): Promise<void> {
         commentsController?.abort();
         commentsController = new AbortController();
         const controller = commentsController;
         const load = (): void => {
-            void loadComments(gameSlug, heading, list);
+            void loadComments(gameSlug, heading, list, userEmail);
         };
         list.setAttribute('aria-busy', 'true');
         list.replaceChildren(
@@ -760,6 +985,9 @@ export const createGameDetailsDialog = (
                 limit: '3',
                 sort: 'newest',
             });
+            if (userEmail?.trim()) {
+                query.set('userEmail', userEmail.trim());
+            }
             const response = await fetch(
                 `${API_BASE_URL}/games/${encodeURIComponent(gameSlug)}/comments?${query.toString()}`,
                 { signal: controller.signal },
@@ -826,7 +1054,7 @@ export const createGameDetailsDialog = (
         setCloseHandler: (handler): void => {
             onUserClose = handler;
         },
-        open: (gameSlug, userEmail): void => {
+        open: (gameSlug, session): void => {
             if (!gameSlug) {
                 throw new Error(
                     'A game slug is required to open game details.',
@@ -838,7 +1066,7 @@ export const createGameDetailsDialog = (
                 closeTimer = undefined;
             }
             currentRequest = () => {
-                void loadDetails(gameSlug, userEmail);
+                void loadDetails(gameSlug, session);
             };
             dialog.classList.remove('game-details--closing');
             if (!dialog.open) {
@@ -848,7 +1076,7 @@ export const createGameDetailsDialog = (
             globalThis.requestAnimationFrame(() => {
                 dialog.classList.add('game-details--visible');
             });
-            void loadDetails(gameSlug, userEmail);
+            void loadDetails(gameSlug, session);
         },
     };
 };
