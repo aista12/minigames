@@ -20,6 +20,7 @@ const libraryLink = pageHref('library', import.meta.env.BASE_URL);
 
 export type InteractiveHeader = HTMLElement & {
     setAuthMode: (mode: AuthMode | undefined) => void;
+    setUserProfile: (profile: AppSessionProfile | undefined) => void;
 };
 
 type AuthField = 'email' | 'username' | 'password' | 'confirmPassword';
@@ -207,15 +208,79 @@ const getAuthFailureMessage = (error: unknown): string => {
     );
 };
 
-const getUserProfile = (user: User, fallbackName = ''): AppSessionProfile => ({
-    displayName:
-        fallbackName ||
-        user.displayName ||
-        user.email?.split('@', 1)[0] ||
-        'Player',
-    email: user.email ?? '',
-    ...(user.photoURL && { avatarUrl: user.photoURL }),
-});
+const getUserProfile = (user: User, fallbackName = ''): AppSessionProfile => {
+    const emailName = user.email?.split('@', 1)[0]?.trim();
+    return {
+        displayName:
+            fallbackName.trim() ||
+            user.displayName?.trim() ||
+            emailName ||
+            'Player',
+        email: user.email ?? '',
+        ...(user.photoURL && { avatarUrl: user.photoURL }),
+    };
+};
+
+const getProfileName = (profile: AppSessionProfile): string => {
+    const displayName = profile.displayName.trim();
+    if (displayName) {
+        return displayName;
+    }
+    const emailName = profile.email.split('@', 1)[0]?.trim();
+    return emailName || 'Player';
+};
+
+const getProfileInitials = (name: string): string => {
+    const words = name.trim().split(/\s+/u).filter(Boolean);
+    const initials = words
+        .slice(0, 2)
+        .map((word) =>
+            [...word].find((character) => /[\p{L}\p{N}]/u.test(character)),
+        )
+        .filter((character): character is string => character !== undefined)
+        .join('')
+        .toLocaleUpperCase();
+    return initials || '?';
+};
+
+const createProfileView = (
+    profile: AppSessionProfile,
+    className: string,
+): HTMLElement => {
+    const name = getProfileName(profile);
+    const view = document.createElement('div');
+    view.className = className;
+    view.setAttribute('aria-label', `Signed in as ${name}`);
+
+    const avatar = document.createElement('span');
+    avatar.className = `${className}__avatar`;
+
+    const initials = document.createElement('span');
+    initials.className = `${className}__initials`;
+    initials.textContent = getProfileInitials(name);
+    avatar.append(initials);
+
+    if (profile.avatarUrl) {
+        const image = document.createElement('img');
+        image.className = `${className}__photo`;
+        image.src = profile.avatarUrl;
+        image.alt = '';
+        image.addEventListener('load', () => {
+            avatar.classList.add(`${className}--has-photo`);
+        });
+        image.addEventListener('error', () => {
+            image.remove();
+            avatar.classList.remove(`${className}--has-photo`);
+        });
+        avatar.append(image);
+    }
+
+    const displayName = document.createElement('span');
+    displayName.className = `${className}__name`;
+    displayName.textContent = name;
+    view.append(avatar, displayName);
+    return view;
+};
 
 const createLogo = (): HTMLAnchorElement => {
     const logo = document.createElement('a');
@@ -371,6 +436,13 @@ const createMobileMenu = (
     const actions = document.createElement('div');
     actions.className = 'mobile-menu__actions';
 
+    const profileView = document.createElement('div');
+    profileView.className = 'mobile-menu__profile-slot';
+    profileView.hidden = true;
+
+    const guestActions = document.createElement('div');
+    guestActions.className = 'mobile-menu__guest-actions';
+
     const logInButton = document.createElement('button');
     logInButton.className =
         'mobile-menu__auth-button mobile-menu__auth-button--secondary';
@@ -385,7 +457,8 @@ const createMobileMenu = (
     signUpButton.textContent = 'Sign Up';
     signUpButton.dataset.authControl = 'true';
 
-    actions.append(logInButton, signUpButton);
+    guestActions.append(logInButton, signUpButton);
+    actions.append(profileView, guestActions);
     content.append(topBar, navigation, actions);
     menu.append(content);
 
@@ -853,6 +926,13 @@ export const createHeader = (
     const actions = document.createElement('div');
     actions.className = 'site-header__actions';
 
+    const guestActions = document.createElement('div');
+    guestActions.className = 'site-header__guest-actions';
+
+    const profileView = document.createElement('div');
+    profileView.className = 'site-header__profile-slot';
+    profileView.hidden = true;
+
     const logInButton = document.createElement('button');
     logInButton.className =
         'site-header__button site-header__button--secondary';
@@ -888,6 +968,38 @@ export const createHeader = (
         requestAuthChange,
         navigateToPage,
     );
+    const mobileProfileView = mobileMenu.querySelector<HTMLElement>(
+        '.mobile-menu__profile-slot',
+    );
+    const mobileGuestActions = mobileMenu.querySelector<HTMLElement>(
+        '.mobile-menu__guest-actions',
+    );
+
+    header.setUserProfile = (profile): void => {
+        const isAuthenticated = profile !== undefined;
+        profileView.hidden = !isAuthenticated;
+        guestActions.hidden = isAuthenticated;
+        if (isAuthenticated) {
+            profileView.replaceChildren(
+                createProfileView(profile, 'site-header__profile'),
+            );
+        } else {
+            profileView.replaceChildren();
+        }
+
+        if (!mobileProfileView || !mobileGuestActions) {
+            return;
+        }
+
+        mobileProfileView.hidden = !isAuthenticated;
+        mobileGuestActions.hidden = isAuthenticated;
+        mobileProfileView.replaceChildren(
+            ...(profile
+                ? [createProfileView(profile, 'mobile-menu__profile')]
+                : []),
+        );
+    };
+
     menuButton.addEventListener('click', () => {
         mobileMenu.classList.add('mobile-menu--open');
         mobileMenu.setAttribute('aria-hidden', 'false');
@@ -898,7 +1010,8 @@ export const createHeader = (
             ?.focus();
     });
 
-    actions.append(logInButton, signUpButton, menuButton);
+    guestActions.append(logInButton, signUpButton);
+    actions.append(guestActions, profileView, menuButton);
     content.append(actions);
 
     header.append(content, mobileMenu, dialog);

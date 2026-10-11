@@ -63,8 +63,12 @@ const app = document.createElement('div');
 app.id = 'app';
 const main = document.createElement('main');
 const snackbar = createSnackbar();
+const headerState: { current: InteractiveHeader | undefined } = {
+    current: undefined,
+};
 const appSession = createAppSession(
     () => {
+        headerState.current?.setUserProfile(undefined);
         snackbar.show(
             'Your session expired. You are now in guest mode.',
             'error',
@@ -266,7 +270,7 @@ function applyRoute(next: AppRoute): void {
         return;
     }
     routerState.activeAuth = next.auth;
-    header.setAuthMode(next.auth);
+    headerState.current?.setAuthMode(next.auth);
 }
 
 const header: InteractiveHeader = createHeader(
@@ -280,6 +284,7 @@ const header: InteractiveHeader = createHeader(
     },
     async (profile) => {
         appSession.establish(profile);
+        headerState.current?.setUserProfile(profile);
         navigate({
             ...routerState.route,
             auth: undefined,
@@ -289,6 +294,11 @@ const header: InteractiveHeader = createHeader(
     snackbar,
     sessionInitialization,
 );
+headerState.current = header;
+
+void sessionInitialization.then((session) => {
+    header.setUserProfile(session);
+});
 
 app.append(
     header,
