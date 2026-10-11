@@ -69,6 +69,9 @@ const headerState: { current: InteractiveHeader | undefined } = {
 const appSession = createAppSession(
     () => {
         headerState.current?.setUserProfile(undefined);
+        if (routerState.route.game && !routerState.route.auth) {
+            gameDetailsDialog.open(routerState.route.game);
+        }
         snackbar.show(
             'Your session expired. You are now in guest mode.',
             'error',
@@ -88,21 +91,21 @@ const sessionInitialization = (async () => {
     return session;
 })();
 const protectedAuthState = { shouldRestoreGame: false };
-const gameDetailsDialog = createGameDetailsDialog(snackbar, () => {
-    if (appSession.getValidSession()) {
-        return true;
-    }
-
-    protectedAuthState.shouldRestoreGame = routerState.route.game !== undefined;
-    navigate({
-        ...routerState.route,
-        auth: 'login',
-        game: protectedAuthState.shouldRestoreGame
-            ? routerState.route.game
-            : undefined,
-    });
-    return false;
-});
+const gameDetailsDialog = createGameDetailsDialog(
+    snackbar,
+    () => appSession.getValidSession(),
+    () => {
+        protectedAuthState.shouldRestoreGame =
+            routerState.route.game !== undefined;
+        navigate({
+            ...routerState.route,
+            auth: 'login',
+            game: protectedAuthState.shouldRestoreGame
+                ? routerState.route.game
+                : undefined,
+        });
+    },
+);
 const libraryPagination: InteractiveLibraryPagination =
     createLibraryPagination();
 const routerState: {
@@ -165,6 +168,11 @@ const navigate = (next: AppRoute, isReplace = false): void => {
         globalThis.history.pushState(undefined, '', url);
     }
     applyRoute(next);
+};
+
+const openGameDetails = (gameSlug: string): void => {
+    const session = appSession.getValidSession();
+    gameDetailsDialog.open(gameSlug, session);
 };
 
 const navigatePage = (page: SitePage): void => {
@@ -324,7 +332,7 @@ function applyRoute(next: AppRoute): void {
     if (routerState.activeAuth === next.auth) {
         if (gameToShow && routerState.activeGame !== gameToShow) {
             routerState.activeGame = gameToShow;
-            gameDetailsDialog.open(gameToShow);
+            openGameDetails(gameToShow);
         }
         if (!next.auth && !next.game) {
             protectedAuthState.shouldRestoreGame = false;
@@ -338,7 +346,7 @@ function applyRoute(next: AppRoute): void {
     );
     if (gameToShow && routerState.activeGame !== gameToShow) {
         routerState.activeGame = gameToShow;
-        gameDetailsDialog.open(gameToShow);
+        openGameDetails(gameToShow);
     }
     if (!next.auth && !next.game) {
         protectedAuthState.shouldRestoreGame = false;
@@ -378,7 +386,7 @@ const header: InteractiveHeader = createHeader(
     () => {
         header.setUserProfile(undefined);
         if (routerState.route.game && !routerState.route.auth) {
-            gameDetailsDialog.open(routerState.route.game);
+            openGameDetails(routerState.route.game);
         }
         snackbar.show('You have been logged out.', 'success');
         void appSession.logout();
