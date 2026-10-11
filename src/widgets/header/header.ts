@@ -2,12 +2,284 @@ import './header.scss';
 import brandLogoUrl from '../../shared/assets/brand-logo.png';
 import menuIconUrl from '../../shared/assets/menu.svg';
 import { pageHref, type AuthMode, type SitePage } from '../../shared/router';
+import {
+    createUserWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithEmailAndPassword,
+    signOut,
+    updateProfile,
+    type User,
+} from 'firebase/auth';
+import { firebaseAuth } from '../../shared/firebase';
+import type { AppSessionProfile } from '../../shared/app-session';
+import type { Snackbar } from '../../shared/snackbar';
 
 const homeLink = pageHref('home', import.meta.env.BASE_URL);
 const libraryLink = pageHref('library', import.meta.env.BASE_URL);
 
 export type InteractiveHeader = HTMLElement & {
-    setAuthMode: (mode: AuthMode | undefined) => void;
+    setAuthMode: (mode: AuthMode | undefined, isImmediate?: boolean) => void;
+    setUserProfile: (profile: AppSessionProfile | undefined) => void;
+};
+
+type AuthField = 'email' | 'username' | 'password' | 'confirmPassword';
+const authFields = new Set<string>([
+    'email',
+    'username',
+    'password',
+    'confirmPassword',
+]);
+
+const isAuthField = (field: string | undefined): field is AuthField =>
+    authFields.has(field ?? '');
+
+const getAuthFieldError = (
+    field: AuthField,
+    value: string,
+    password: string,
+    isSignUp: boolean,
+): string => {
+    if (field === 'email') {
+        if (!value.trim()) {
+            return 'Email is required.';
+        }
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+            ? ''
+            : 'Enter a valid email address.';
+    }
+
+    if (field === 'username') {
+        if (!value) {
+            return 'Username is required.';
+        }
+        if (value.length < 2 || value.length > 30) {
+            return 'Username must be 2–30 characters long.';
+        }
+        return /^[A-Z][A-Za-z0-9]+$/.test(value)
+            ? ''
+            : 'Start with an uppercase English letter; use English letters and digits only.';
+    }
+
+    if (field === 'password') {
+        if (!value) {
+            return 'Password is required.';
+        }
+        if (value.length < 6) {
+            return 'Password must be at least 6 characters long.';
+        }
+        return isSignUp &&
+            (!/[A-Z]/.test(value) ||
+                !/\d/.test(value) ||
+                !/[^A-Za-z0-9]/.test(value))
+            ? 'Use an uppercase letter, a number, and a special character.'
+            : '';
+    }
+
+    if (!value) {
+        return 'Please confirm your password.';
+    }
+    return value === password ? '' : 'Passwords do not match.';
+};
+
+const isAuthFieldValid = (
+    input: HTMLInputElement,
+    shouldShowError: boolean,
+): boolean => {
+    const field = input.dataset.authField;
+    const form = input.closest<HTMLFormElement>('.auth-dialog__content');
+    const errorElement = input.parentElement?.querySelector<HTMLElement>(
+        '.auth-dialog__error',
+    );
+    if (!form || !errorElement || !isAuthField(field)) {
+        return false;
+    }
+
+    const password =
+        form.querySelector<HTMLInputElement>('[data-auth-field="password"]')
+            ?.value ?? '';
+    const error = getAuthFieldError(
+        field,
+        input.value,
+        password,
+        form.classList.contains('auth-dialog__content--signup'),
+    );
+    input.setAttribute(
+        'aria-invalid',
+        String(shouldShowError && Boolean(error)),
+    );
+    errorElement.textContent = shouldShowError ? error : '';
+    return !error;
+};
+
+const updateSubmitState = (form: HTMLFormElement): void => {
+    const submitButton = form.querySelector<HTMLButtonElement>(
+        '.auth-dialog__submit',
+    );
+    if (!submitButton) {
+        return;
+    }
+    const inputs = [
+        ...form.querySelectorAll<HTMLInputElement>('[data-auth-field]'),
+    ];
+    submitButton.disabled = inputs.some(
+        (input) => !isAuthFieldValid(input, input.dataset.touched === 'true'),
+    );
+};
+
+const handleAuthFieldChange = (event: Event): void => {
+    const input =
+        event.target instanceof HTMLInputElement ? event.target : undefined;
+    if (!input?.dataset.authField) {
+        return;
+    }
+
+    input.dataset.touched = 'true';
+    const form = input.closest<HTMLFormElement>('.auth-dialog__content');
+    if (!form) {
+        return;
+    }
+
+    isAuthFieldValid(input, true);
+    if (
+        input.dataset.authField === 'password' &&
+        form.classList.contains('auth-dialog__content--signup')
+    ) {
+        const confirmPassword = form.querySelector<HTMLInputElement>(
+            '[data-auth-field="confirmPassword"]',
+        );
+        if (confirmPassword?.dataset.touched === 'true') {
+            isAuthFieldValid(confirmPassword, true);
+        }
+    }
+    updateSubmitState(form);
+};
+
+const getAuthFailureMessage = (error: unknown): string => {
+    const errorCode =
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof error.code === 'string'
+            ? error.code
+            : '';
+    const knownErrors = new Map<string, string>([
+        ['auth/invalid-credential', 'Invalid email or password.'],
+        ['auth/invalid-login-credentials', 'Invalid email or password.'],
+        ['auth/wrong-password', 'Invalid email or password.'],
+        ['auth/user-not-found', 'Invalid email or password.'],
+        [
+            'auth/email-already-in-use',
+            'An account already exists for this email.',
+        ],
+        ['auth/invalid-email', 'Enter a valid email address.'],
+        ['auth/weak-password', 'Choose a stronger password and try again.'],
+        [
+            'auth/too-many-requests',
+            'Too many attempts. Please try again later.',
+        ],
+        [
+            'auth/network-request-failed',
+            'Network error. Check your connection and retry.',
+        ],
+        [
+            'auth/popup-closed-by-user',
+            'Google sign-in was canceled. You can try again.',
+        ],
+        [
+            'auth/cancelled-popup-request',
+            'Google sign-in was canceled. You can try again.',
+        ],
+        [
+            'auth/popup-blocked',
+            'Your browser blocked the Google sign-in popup. Allow popups and retry.',
+        ],
+        [
+            'auth/operation-not-allowed',
+            'Google sign-in is not enabled for this Firebase project.',
+        ],
+        [
+            'auth/unauthorized-domain',
+            'This domain is not authorized for Google sign-in. Add it in Firebase Authentication settings.',
+        ],
+    ]);
+    return (
+        knownErrors.get(errorCode) ?? 'Authentication failed. Please try again.'
+    );
+};
+
+const getUserProfile = (user: User, fallbackName = ''): AppSessionProfile => {
+    const emailName = user.email?.split('@', 1)[0]?.trim();
+    return {
+        displayName:
+            fallbackName.trim() ||
+            user.displayName?.trim() ||
+            emailName ||
+            'Player',
+        email: user.email ?? '',
+        ...(user.photoURL && { avatarUrl: user.photoURL }),
+    };
+};
+
+const getProfileName = (profile: AppSessionProfile): string => {
+    const displayName = profile.displayName.trim();
+    if (displayName) {
+        return displayName;
+    }
+    const emailName = profile.email.split('@', 1)[0]?.trim();
+    return emailName || 'Player';
+};
+
+const getProfileInitials = (name: string): string => {
+    const words = name.trim().split(/\s+/u).filter(Boolean);
+    const initials = words
+        .slice(0, 2)
+        .map((word) =>
+            [...word].find((character) => /[\p{L}\p{N}]/u.test(character)),
+        )
+        .filter((character): character is string => character !== undefined)
+        .join('')
+        .toLocaleUpperCase();
+    return initials || '?';
+};
+
+const createProfileView = (
+    profile: AppSessionProfile,
+    className: string,
+): HTMLElement => {
+    const name = getProfileName(profile);
+    const view = document.createElement('div');
+    view.className = className;
+    view.setAttribute('aria-label', `Signed in as ${name}`);
+
+    const avatar = document.createElement('span');
+    avatar.className = `${className}__avatar`;
+
+    const initials = document.createElement('span');
+    initials.className = `${className}__initials`;
+    initials.textContent = getProfileInitials(name);
+    avatar.append(initials);
+
+    if (profile.avatarUrl) {
+        const image = document.createElement('img');
+        image.className = `${className}__photo`;
+        image.src = profile.avatarUrl;
+        image.alt = '';
+        image.addEventListener('load', () => {
+            avatar.classList.add(`${className}--has-photo`);
+        });
+        image.addEventListener('error', () => {
+            image.remove();
+            avatar.classList.remove(`${className}--has-photo`);
+        });
+        avatar.append(image);
+    }
+
+    const displayName = document.createElement('span');
+    displayName.className = `${className}__name`;
+    displayName.textContent = name;
+    view.append(avatar, displayName);
+    return view;
 };
 
 const createLogo = (): HTMLAnchorElement => {
@@ -58,33 +330,43 @@ const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
     const fields = isSignUp
         ? `
             <label class="auth-dialog__field">
-                <span>Display name</span>
-                <input type="text" autocomplete="name" placeholder="Display name" />
+                <span>Username</span>
+                <input type="text" autocomplete="username" placeholder="Username" data-auth-field="username" aria-describedby="auth-username-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-username-error" aria-live="polite"></span>
             </label>
             <label class="auth-dialog__field">
                 <span>Email</span>
-                <input type="email" autocomplete="email" placeholder="Email" />
+                <input type="email" autocomplete="email" placeholder="Email" data-auth-field="email" aria-describedby="auth-email-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-email-error" aria-live="polite"></span>
             </label>
             <label class="auth-dialog__field">
                 <span>Password</span>
-                <input type="password" autocomplete="new-password" placeholder="Password" />
+                <input type="password" autocomplete="new-password" placeholder="Password" data-auth-field="password" aria-describedby="auth-password-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-password-error" aria-live="polite"></span>
+            </label>
+            <label class="auth-dialog__field">
+                <span>Confirm password</span>
+                <input type="password" autocomplete="new-password" placeholder="Confirm password" data-auth-field="confirmPassword" aria-describedby="auth-confirm-password-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-confirm-password-error" aria-live="polite"></span>
             </label>
         `
         : `
             <label class="auth-dialog__field">
-                <span>Email or username</span>
-                <input type="email" autocomplete="email" placeholder="Email or username" />
+                <span>Email</span>
+                <input type="email" autocomplete="email" placeholder="Email" data-auth-field="email" aria-describedby="auth-email-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-email-error" aria-live="polite"></span>
             </label>
             <label class="auth-dialog__field">
                 <span>Password</span>
-                <input type="password" autocomplete="current-password" placeholder="Password" />
+                <input type="password" autocomplete="current-password" placeholder="Password" data-auth-field="password" aria-describedby="auth-password-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-password-error" aria-live="polite"></span>
             </label>
         `;
     const footer = isSignUp
         ? '<p class="auth-dialog__signup">Already have an account? <a href="#home" data-auth-mode="login">Login</a></p>'
         : '<p class="auth-dialog__signup">New to MiniGames? <a href="#home" data-auth-mode="signup">Register</a></p>';
     dialog.innerHTML = `
-        <form class="auth-dialog__content auth-dialog__content--${mode}">
+        <form class="auth-dialog__content auth-dialog__content--${mode}" novalidate>
             <button class="auth-dialog__close" type="button" aria-label="Close ${isSignUp ? 'sign up' : 'sign in'} dialog">×</button>
             <div class="auth-dialog__switcher" role="tablist" aria-label="Authentication mode">
                 <button class="auth-dialog__tab${isSignUp ? '' : ' auth-dialog__tab--active'}" type="button" role="tab" aria-selected="${!isSignUp}" data-auth-mode="login">Login</button>
@@ -93,8 +375,14 @@ const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
             <div class="auth-dialog__eyebrow">MINIGAMES ACCOUNT</div>
             <h2 id="auth-dialog-title">${isSignUp ? 'Create your account' : 'Sign in'}</h2>
             <p class="auth-dialog__intro">${isSignUp ? 'Join the fun and keep your games in one place.' : 'Welcome back. Pick up where you left off.'}</p>
+            <p class="auth-dialog__request-status" role="status" aria-live="polite"></p>
             ${fields}
-            <button class="auth-dialog__submit" type="button">${isSignUp ? 'Sign up' : 'Sign in'}</button>
+            <button class="auth-dialog__submit" type="submit" disabled>${isSignUp ? 'Sign up' : 'Sign in'}</button>
+            <div class="auth-dialog__divider"><span>or continue with</span></div>
+            <button class="auth-dialog__google" type="button" data-google-auth>
+                <span class="auth-dialog__google-mark" aria-hidden="true">G</span>
+                Continue with Google
+            </button>
             ${isSignUp ? '' : '<div class="auth-dialog__options"><label><input type="checkbox" /> <span>Remember me</span></label><a href="#home">Need help?</a></div>'}
             ${footer}
         </form>
@@ -148,19 +436,29 @@ const createMobileMenu = (
     const actions = document.createElement('div');
     actions.className = 'mobile-menu__actions';
 
+    const profileView = document.createElement('div');
+    profileView.className = 'mobile-menu__profile-slot';
+    profileView.hidden = true;
+
+    const guestActions = document.createElement('div');
+    guestActions.className = 'mobile-menu__guest-actions';
+
     const logInButton = document.createElement('button');
     logInButton.className =
         'mobile-menu__auth-button mobile-menu__auth-button--secondary';
     logInButton.type = 'button';
     logInButton.textContent = 'Log In';
+    logInButton.dataset.authControl = 'true';
 
     const signUpButton = document.createElement('button');
     signUpButton.className =
         'mobile-menu__auth-button mobile-menu__auth-button--primary';
     signUpButton.type = 'button';
     signUpButton.textContent = 'Sign Up';
+    signUpButton.dataset.authControl = 'true';
 
-    actions.append(logInButton, signUpButton);
+    guestActions.append(logInButton, signUpButton);
+    actions.append(profileView, guestActions);
     content.append(topBar, navigation, actions);
     menu.append(content);
 
@@ -212,6 +510,10 @@ const createMobileMenu = (
 export const createHeader = (
     onNavigate: (page: SitePage) => void = () => {},
     onAuthChange?: (mode: AuthMode | undefined) => void,
+    onAuthenticated?: (profile: AppSessionProfile) => Promise<void>,
+    snackbar?: Snackbar,
+    authReady: Promise<unknown> = Promise.resolve(),
+    onLogout?: () => void,
 ): InteractiveHeader => {
     const header = document.createElement('header') as InteractiveHeader;
     header.className = 'site-header';
@@ -261,6 +563,230 @@ export const createHeader = (
     const dialog = createAuthDialog();
     let closeTimer: number | undefined;
     let switchTimer: number | undefined;
+    let isAuthPending = false;
+    let isAuthReady = false;
+
+    void authReady
+        .then(() => {
+            isAuthReady = true;
+            for (const button of dialog.querySelectorAll<HTMLButtonElement>(
+                '[data-google-auth]',
+            )) {
+                button.disabled = isAuthPending;
+            }
+        })
+        .catch((error: unknown) => {
+            snackbar?.show(
+                'Authentication could not be initialized. Reload the app and try again.',
+                'error',
+            );
+            globalThis.reportError(error);
+        });
+
+    const setAuthPending = (isPending: boolean): void => {
+        isAuthPending = isPending;
+        dialog.setAttribute('aria-busy', String(isPending));
+        for (const input of dialog.querySelectorAll<HTMLInputElement>(
+            'input',
+        )) {
+            input.disabled = isPending;
+        }
+        for (const button of dialog.querySelectorAll<HTMLButtonElement>(
+            'button',
+        )) {
+            button.disabled =
+                isPending ||
+                (!isAuthReady && button.dataset.googleAuth !== undefined);
+        }
+        for (const button of header.querySelectorAll<HTMLButtonElement>(
+            '[data-auth-control]',
+        )) {
+            button.disabled = isPending;
+        }
+        for (const link of dialog.querySelectorAll<HTMLAnchorElement>(
+            '[data-auth-mode]',
+        )) {
+            link.setAttribute('aria-disabled', String(isPending));
+            link.tabIndex = isPending ? -1 : 0;
+        }
+        const submitButton = dialog.querySelector<HTMLButtonElement>(
+            '.auth-dialog__submit',
+        );
+        const requestStatus = dialog.querySelector<HTMLElement>(
+            '.auth-dialog__request-status',
+        );
+        if (isPending) {
+            if (submitButton) {
+                submitButton.textContent = 'Please wait…';
+            }
+            if (requestStatus) {
+                requestStatus.textContent = 'Authenticating…';
+            }
+        } else {
+            const isSignUp = dialog
+                .querySelector('form')
+                ?.classList.contains('auth-dialog__content--signup');
+            if (submitButton) {
+                submitButton.textContent = isSignUp ? 'Sign up' : 'Sign in';
+            }
+            if (requestStatus) {
+                requestStatus.textContent = '';
+            }
+            const form = dialog.querySelector<HTMLFormElement>('form');
+            if (form) {
+                updateSubmitState(form);
+            }
+        }
+    };
+
+    const submitAuthentication = async (event: SubmitEvent): Promise<void> => {
+        event.preventDefault();
+        if (isAuthPending || !onAuthenticated) {
+            return;
+        }
+        const form =
+            event.target instanceof HTMLFormElement ? event.target : undefined;
+        if (!form) {
+            return;
+        }
+        const inputs = [
+            ...form.querySelectorAll<HTMLInputElement>('[data-auth-field]'),
+        ];
+        let isValid = true;
+        for (const input of inputs) {
+            input.dataset.touched = 'true';
+            isValid = isAuthFieldValid(input, true) && isValid;
+        }
+        updateSubmitState(form);
+        if (!isValid) {
+            return;
+        }
+
+        const isSignUp = form.classList.contains(
+            'auth-dialog__content--signup',
+        );
+        const email =
+            form
+                .querySelector<HTMLInputElement>('[data-auth-field="email"]')
+                ?.value.trim() ?? '';
+        const password =
+            form.querySelector<HTMLInputElement>('[data-auth-field="password"]')
+                ?.value ?? '';
+        const username =
+            form
+                .querySelector<HTMLInputElement>('[data-auth-field="username"]')
+                ?.value.trim() ?? '';
+
+        setAuthPending(true);
+        let shouldRollbackFirebaseAuth = false;
+        try {
+            await authReady;
+            const credentials = isSignUp
+                ? await createUserWithEmailAndPassword(
+                      firebaseAuth,
+                      email,
+                      password,
+                  )
+                : await signInWithEmailAndPassword(
+                      firebaseAuth,
+                      email,
+                      password,
+                  );
+            shouldRollbackFirebaseAuth = true;
+            if (isSignUp) {
+                await updateProfile(credentials.user, {
+                    displayName: username,
+                });
+            }
+
+            const profile = getUserProfile(credentials.user, username);
+            setAuthPending(false);
+            await onAuthenticated(profile);
+            snackbar?.show(
+                isSignUp ? 'Your account was created.' : 'Welcome back!',
+                'success',
+            );
+        } catch (error) {
+            if (shouldRollbackFirebaseAuth && firebaseAuth.currentUser) {
+                try {
+                    await signOut(firebaseAuth);
+                } catch (signOutError) {
+                    snackbar?.show(
+                        'Could not clear the Firebase sign-in after the authentication error.',
+                        'error',
+                    );
+                    globalThis.reportError(signOutError);
+                }
+            }
+            setAuthPending(false);
+            const message = getAuthFailureMessage(error);
+            const requestStatus = dialog.querySelector<HTMLElement>(
+                '.auth-dialog__request-status',
+            );
+            if (requestStatus) {
+                requestStatus.textContent = message;
+            }
+            snackbar?.show(message, 'error');
+        }
+    };
+
+    const authenticateWithGoogle = async (): Promise<void> => {
+        if (isAuthPending || !isAuthReady || !onAuthenticated) {
+            return;
+        }
+
+        setAuthPending(true);
+        let shouldRollbackFirebaseAuth = false;
+        try {
+            const credentialsPromise = signInWithPopup(
+                firebaseAuth,
+                new GoogleAuthProvider(),
+            );
+            const credentials = await credentialsPromise;
+            shouldRollbackFirebaseAuth = true;
+            const profile = getUserProfile(credentials.user);
+            setAuthPending(false);
+            await onAuthenticated(profile);
+            snackbar?.show('You are signed in with Google.', 'success');
+        } catch (error) {
+            if (shouldRollbackFirebaseAuth && firebaseAuth.currentUser) {
+                try {
+                    await signOut(firebaseAuth);
+                } catch (signOutError) {
+                    snackbar?.show(
+                        'Could not clear the Firebase sign-in after the authentication error.',
+                        'error',
+                    );
+                    globalThis.reportError(signOutError);
+                }
+            }
+            setAuthPending(false);
+            const message = getAuthFailureMessage(error);
+            const requestStatus = dialog.querySelector<HTMLElement>(
+                '.auth-dialog__request-status',
+            );
+            if (requestStatus) {
+                requestStatus.textContent = message;
+            }
+            snackbar?.show(message, 'error');
+        }
+    };
+
+    dialog.addEventListener('input', handleAuthFieldChange);
+    dialog.addEventListener('change', handleAuthFieldChange);
+    dialog.addEventListener('focusout', handleAuthFieldChange);
+    dialog.addEventListener('click', (event) => {
+        const googleButton =
+            event.target instanceof Element
+                ? event.target.closest<HTMLButtonElement>('[data-google-auth]')
+                : undefined;
+        if (googleButton) {
+            void authenticateWithGoogle();
+        }
+    });
+    dialog.addEventListener('submit', (event) => {
+        void submitAuthentication(event);
+    });
 
     const setAuthMode = (mode: AuthMode, isAnimated: boolean): void => {
         if (switchTimer !== undefined) {
@@ -287,6 +813,9 @@ export const createHeader = (
     };
 
     const openAuthDialog = (mode: AuthMode): void => {
+        if (isAuthPending) {
+            return;
+        }
         if (closeTimer !== undefined) {
             globalThis.clearTimeout(closeTimer);
             closeTimer = undefined;
@@ -304,8 +833,12 @@ export const createHeader = (
         });
     };
 
-    const closeAuthDialog = (): void => {
-        if (!dialog.open || dialog.classList.contains('auth-dialog--closing')) {
+    const closeAuthDialog = (isImmediate = false): void => {
+        if (
+            isAuthPending ||
+            !dialog.open ||
+            (!isImmediate && dialog.classList.contains('auth-dialog--closing'))
+        ) {
             return;
         }
 
@@ -317,21 +850,30 @@ export const createHeader = (
             globalThis.clearTimeout(switchTimer);
             switchTimer = undefined;
         }
-        dialog.classList.add('auth-dialog--closing');
-        closeTimer = globalThis.setTimeout(() => {
+        if (closeTimer !== undefined) {
+            globalThis.clearTimeout(closeTimer);
+            closeTimer = undefined;
+        }
+        const finishClosing = (): void => {
             dialog.close();
             dialog.classList.remove('auth-dialog--closing');
             document.body.classList.remove('auth-dialog-open');
             closeTimer = undefined;
-        }, 180);
+        };
+        if (isImmediate) {
+            finishClosing();
+            return;
+        }
+        dialog.classList.add('auth-dialog--closing');
+        closeTimer = globalThis.setTimeout(finishClosing, 180);
     };
 
-    header.setAuthMode = (mode): void => {
+    header.setAuthMode = (mode, isImmediate): void => {
         if (mode) {
             openAuthDialog(mode);
             return;
         }
-        closeAuthDialog();
+        closeAuthDialog(isImmediate);
     };
 
     const requestAuthChange = (mode: AuthMode | undefined): void => {
@@ -345,6 +887,10 @@ export const createHeader = (
     };
 
     dialog.addEventListener('click', (event) => {
+        if (isAuthPending) {
+            event.preventDefault();
+            return;
+        }
         const switchTarget =
             event.target instanceof Element
                 ? event.target.closest<HTMLElement>('[data-auth-mode]')
@@ -370,6 +916,9 @@ export const createHeader = (
     });
     dialog.addEventListener('cancel', (event) => {
         event.preventDefault();
+        if (isAuthPending) {
+            return;
+        }
         requestAuthChange(undefined);
     });
     document.addEventListener('keydown', (event) => {
@@ -378,23 +927,35 @@ export const createHeader = (
         }
 
         event.preventDefault();
+        if (isAuthPending) {
+            return;
+        }
         requestAuthChange(undefined);
     });
 
     const actions = document.createElement('div');
     actions.className = 'site-header__actions';
 
+    const guestActions = document.createElement('div');
+    guestActions.className = 'site-header__guest-actions';
+
+    const profileView = document.createElement('div');
+    profileView.className = 'site-header__profile-slot';
+    profileView.hidden = true;
+
     const logInButton = document.createElement('button');
     logInButton.className =
         'site-header__button site-header__button--secondary';
     logInButton.type = 'button';
     logInButton.textContent = 'Log In';
+    logInButton.dataset.authControl = 'true';
     logInButton.addEventListener('click', () => requestAuthChange('login'));
 
     const signUpButton = document.createElement('button');
     signUpButton.className = 'site-header__button site-header__button--primary';
     signUpButton.type = 'button';
     signUpButton.textContent = 'Sign Up';
+    signUpButton.dataset.authControl = 'true';
     signUpButton.addEventListener('click', () => requestAuthChange('signup'));
 
     const menuButton = document.createElement('button');
@@ -417,6 +978,57 @@ export const createHeader = (
         requestAuthChange,
         navigateToPage,
     );
+    const mobileProfileView = mobileMenu.querySelector<HTMLElement>(
+        '.mobile-menu__profile-slot',
+    );
+    const mobileGuestActions = mobileMenu.querySelector<HTMLElement>(
+        '.mobile-menu__guest-actions',
+    );
+
+    const createLogoutButton = (className: string): HTMLButtonElement => {
+        const button = document.createElement('button');
+        button.className = className;
+        button.type = 'button';
+        button.textContent = 'Log Out';
+        button.setAttribute('aria-label', 'Log out');
+        button.addEventListener('click', () => onLogout?.());
+        return button;
+    };
+
+    const desktopLogoutButton = createLogoutButton(
+        'site-header__logout-button',
+    );
+    const mobileLogoutButton = createLogoutButton('mobile-menu__logout-button');
+
+    header.setUserProfile = (profile): void => {
+        const isAuthenticated = profile !== undefined;
+        profileView.hidden = !isAuthenticated;
+        guestActions.hidden = isAuthenticated;
+        if (isAuthenticated) {
+            profileView.replaceChildren(
+                createProfileView(profile, 'site-header__profile'),
+                desktopLogoutButton,
+            );
+        } else {
+            profileView.replaceChildren();
+        }
+
+        if (!mobileProfileView || !mobileGuestActions) {
+            return;
+        }
+
+        mobileProfileView.hidden = !isAuthenticated;
+        mobileGuestActions.hidden = isAuthenticated;
+        mobileProfileView.replaceChildren(
+            ...(profile
+                ? [
+                      createProfileView(profile, 'mobile-menu__profile'),
+                      mobileLogoutButton,
+                  ]
+                : []),
+        );
+    };
+
     menuButton.addEventListener('click', () => {
         mobileMenu.classList.add('mobile-menu--open');
         mobileMenu.setAttribute('aria-hidden', 'false');
@@ -427,7 +1039,8 @@ export const createHeader = (
             ?.focus();
     });
 
-    actions.append(logInButton, signUpButton, menuButton);
+    guestActions.append(logInButton, signUpButton);
+    actions.append(guestActions, profileView, menuButton);
     content.append(actions);
 
     header.append(content, mobileMenu, dialog);
