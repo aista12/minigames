@@ -26,7 +26,7 @@ provider enablement must be completed in the Firebase Console.
 
 The client app session is stored under
 `minigames:aista12:app-session` in local storage. It contains only the display
-name, email, authentication timestamp, and an avatar URL when available. It
+name, email, and authentication timestamp, and an avatar URL when available. It
 expires five minutes after authentication; reloads and app activity do not
 extend that fixed lifetime. Firebase credentials and tokens are not stored in
 this session record.
