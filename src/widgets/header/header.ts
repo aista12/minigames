@@ -4,9 +4,12 @@ import menuIconUrl from '../../shared/assets/menu.svg';
 import { pageHref, type AuthMode, type SitePage } from '../../shared/router';
 import {
     createUserWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithPopup,
     signInWithEmailAndPassword,
     signOut,
     updateProfile,
+    type User,
 } from 'firebase/auth';
 import { firebaseAuth } from '../../shared/firebase';
 import type { AppSessionProfile } from '../../shared/app-session';
@@ -178,11 +181,41 @@ const getAuthFailureMessage = (error: unknown): string => {
             'auth/network-request-failed',
             'Network error. Check your connection and retry.',
         ],
+        [
+            'auth/popup-closed-by-user',
+            'Google sign-in was canceled. You can try again.',
+        ],
+        [
+            'auth/cancelled-popup-request',
+            'Google sign-in was canceled. You can try again.',
+        ],
+        [
+            'auth/popup-blocked',
+            'Your browser blocked the Google sign-in popup. Allow popups and retry.',
+        ],
+        [
+            'auth/operation-not-allowed',
+            'Google sign-in is not enabled for this Firebase project.',
+        ],
+        [
+            'auth/unauthorized-domain',
+            'This domain is not authorized for Google sign-in. Add it in Firebase Authentication settings.',
+        ],
     ]);
     return (
         knownErrors.get(errorCode) ?? 'Authentication failed. Please try again.'
     );
 };
+
+const getUserProfile = (user: User, fallbackName = ''): AppSessionProfile => ({
+    displayName:
+        fallbackName ||
+        user.displayName ||
+        user.email?.split('@', 1)[0] ||
+        'Player',
+    email: user.email ?? '',
+    ...(user.photoURL && { avatarUrl: user.photoURL }),
+});
 
 const createLogo = (): HTMLAnchorElement => {
     const logo = document.createElement('a');
@@ -280,6 +313,11 @@ const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
             <p class="auth-dialog__request-status" role="status" aria-live="polite"></p>
             ${fields}
             <button class="auth-dialog__submit" type="submit" disabled>${isSignUp ? 'Sign up' : 'Sign in'}</button>
+            <div class="auth-dialog__divider"><span>or continue with</span></div>
+            <button class="auth-dialog__google" type="button" data-google-auth>
+                <span class="auth-dialog__google-mark" aria-hidden="true">G</span>
+                Continue with Google
+            </button>
             ${isSignUp ? '' : '<div class="auth-dialog__options"><label><input type="checkbox" /> <span>Remember me</span></label><a href="#home">Need help?</a></div>'}
             ${footer}
         </form>
@@ -452,6 +490,24 @@ export const createHeader = (
     let closeTimer: number | undefined;
     let switchTimer: number | undefined;
     let isAuthPending = false;
+    let isAuthReady = false;
+
+    void authReady
+        .then(() => {
+            isAuthReady = true;
+            for (const button of dialog.querySelectorAll<HTMLButtonElement>(
+                '[data-google-auth]',
+            )) {
+                button.disabled = isAuthPending;
+            }
+        })
+        .catch((error: unknown) => {
+            snackbar?.show(
+                'Authentication could not be initialized. Reload the app and try again.',
+                'error',
+            );
+            globalThis.reportError(error);
+        });
 
     const setAuthPending = (isPending: boolean): void => {
         isAuthPending = isPending;
@@ -464,7 +520,9 @@ export const createHeader = (
         for (const button of dialog.querySelectorAll<HTMLButtonElement>(
             'button',
         )) {
-            button.disabled = isPending;
+            button.disabled =
+                isPending ||
+                (!isAuthReady && button.dataset.googleAuth !== undefined);
         }
         for (const button of header.querySelectorAll<HTMLButtonElement>(
             '[data-auth-control]',
@@ -567,17 +625,7 @@ export const createHeader = (
                 });
             }
 
-            const profile: AppSessionProfile = {
-                displayName:
-                    username ||
-                    credentials.user.displayName ||
-                    email.split('@', 1)[0] ||
-                    'Player',
-                email: credentials.user.email ?? email,
-                ...(credentials.user.photoURL && {
-                    avatarUrl: credentials.user.photoURL,
-                }),
-            };
+            const profile = getUserProfile(credentials.user, username);
             setAuthPending(false);
             await onAuthenticated(profile);
             snackbar?.show(
@@ -608,9 +656,60 @@ export const createHeader = (
         }
     };
 
+    const authenticateWithGoogle = async (): Promise<void> => {
+        if (isAuthPending || !isAuthReady || !onAuthenticated) {
+            return;
+        }
+
+        setAuthPending(true);
+        let shouldRollbackFirebaseAuth = false;
+        try {
+            const credentialsPromise = signInWithPopup(
+                firebaseAuth,
+                new GoogleAuthProvider(),
+            );
+            const credentials = await credentialsPromise;
+            shouldRollbackFirebaseAuth = true;
+            const profile = getUserProfile(credentials.user);
+            setAuthPending(false);
+            await onAuthenticated(profile);
+            snackbar?.show('You are signed in with Google.', 'success');
+        } catch (error) {
+            if (shouldRollbackFirebaseAuth && firebaseAuth.currentUser) {
+                try {
+                    await signOut(firebaseAuth);
+                } catch (signOutError) {
+                    snackbar?.show(
+                        'Could not clear the Firebase sign-in after the authentication error.',
+                        'error',
+                    );
+                    globalThis.reportError(signOutError);
+                }
+            }
+            setAuthPending(false);
+            const message = getAuthFailureMessage(error);
+            const requestStatus = dialog.querySelector<HTMLElement>(
+                '.auth-dialog__request-status',
+            );
+            if (requestStatus) {
+                requestStatus.textContent = message;
+            }
+            snackbar?.show(message, 'error');
+        }
+    };
+
     dialog.addEventListener('input', handleAuthFieldChange);
     dialog.addEventListener('change', handleAuthFieldChange);
     dialog.addEventListener('focusout', handleAuthFieldChange);
+    dialog.addEventListener('click', (event) => {
+        const googleButton =
+            event.target instanceof Element
+                ? event.target.closest<HTMLButtonElement>('[data-google-auth]')
+                : undefined;
+        if (googleButton) {
+            void authenticateWithGoogle();
+        }
+    });
     dialog.addEventListener('submit', (event) => {
         void submitAuthentication(event);
     });

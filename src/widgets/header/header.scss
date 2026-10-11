@@ -447,6 +447,57 @@
     background-color: tokens.$color-footer-text;
 }
 
+.auth-dialog__divider {
+    display: flex;
+    align-items: center;
+    gap: tokens.$size-3;
+    margin-top: tokens.$size-4;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-xs;
+}
+
+.auth-dialog__divider::before,
+.auth-dialog__divider::after {
+    flex: 1;
+    height: tokens.$border-width-thin;
+    background-color: rgb(185 181 201 / 45%);
+    content: '';
+}
+
+.auth-dialog__google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: tokens.$size-3;
+    width: 100%;
+    min-height: 48px;
+    margin-top: tokens.$size-3;
+    border: tokens.$border-width-thin solid rgb(185 181 201 / 45%);
+    border-radius: tokens.$radius-md;
+    background-color: tokens.$color-footer-surface;
+    color: tokens.$color-white;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-semibold;
+}
+
+.auth-dialog__google:hover:not(:disabled) {
+    border-color: tokens.$color-primary;
+}
+
+.auth-dialog__google-mark {
+    display: grid;
+    width: tokens.$size-5;
+    height: tokens.$size-5;
+    place-items: center;
+    border-radius: tokens.$radius-full;
+    background-color: tokens.$color-white;
+    color: tokens.$color-text;
+    font-size: tokens.$font-size-sm;
+    font-weight: tokens.$font-weight-bold;
+}
+
 .auth-dialog button:disabled,
 .site-header__actions [data-auth-control]:disabled,
 .mobile-menu__actions [data-auth-control]:disabled {
