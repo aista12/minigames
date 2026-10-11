@@ -98,6 +98,18 @@ const localCardImages = import.meta.glob<string>(
 );
 const transitionDuration = 180;
 const formatNumber = new Intl.NumberFormat('en');
+const avatarColorTokens = [
+    'random-1',
+    'random-2',
+    'random-3',
+    'random-4',
+    'random-5',
+    'random-6',
+] as const;
+const commentAvatarAssignments = new WeakMap<
+    HTMLUListElement,
+    Map<string, (typeof avatarColorTokens)[number]>
+>();
 const formatRelativeTime = (dateValue: string): string => {
     const elapsedMilliseconds = Math.max(0, Date.now() - Date.parse(dateValue));
     const elapsedMinutes = Math.floor(elapsedMilliseconds / 60_000);
@@ -438,6 +450,11 @@ const renderComments = (
     heading: HTMLHeadingElement,
     comments: GameComments,
 ): void => {
+    let avatarAssignments = commentAvatarAssignments.get(list);
+    if (!avatarAssignments) {
+        avatarAssignments = new Map();
+        commentAvatarAssignments.set(list, avatarAssignments);
+    }
     heading.textContent = `Comments (${comments.meta.totalComments})`;
     list.removeAttribute('aria-busy');
     if (comments.data.length === 0) {
@@ -458,7 +475,19 @@ const renderComments = (
             const avatar = document.createElement('div');
             avatar.className = 'game-details__comment-avatar';
             avatar.setAttribute('aria-hidden', 'true');
-            avatar.textContent = comment.authorName.slice(0, 1).toUpperCase();
+            let avatarColor = avatarAssignments.get(comment.authorName);
+            if (!avatarColor) {
+                const colorIndex = Math.floor(
+                    Math.random() * avatarColorTokens.length,
+                );
+                avatarColor = avatarColorTokens[colorIndex]!;
+                avatarAssignments.set(comment.authorName, avatarColor);
+            }
+            avatar.classList.add(
+                `game-details__comment-avatar--${avatarColor}`,
+            );
+            avatar.textContent =
+                [...comment.authorName.trim()][0]?.toLocaleUpperCase() ?? '?';
 
             const body = document.createElement('div');
             body.className = 'game-details__comment-body';

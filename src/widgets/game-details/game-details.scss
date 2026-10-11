@@ -489,6 +489,30 @@
     height: tokens.$size-8;
 }
 
+.game-details__comment-avatar--random-1 {
+    background-color: tokens.$avatar-random-1;
+}
+
+.game-details__comment-avatar--random-2 {
+    background-color: tokens.$avatar-random-2;
+}
+
+.game-details__comment-avatar--random-3 {
+    background-color: tokens.$avatar-random-3;
+}
+
+.game-details__comment-avatar--random-4 {
+    background-color: tokens.$avatar-random-4;
+}
+
+.game-details__comment-avatar--random-5 {
+    background-color: tokens.$avatar-random-5;
+}
+
+.game-details__comment-avatar--random-6 {
+    background-color: tokens.$avatar-random-6;
+}
+
 .game-details__comment-body {
     min-width: 0;
     flex: 1;
