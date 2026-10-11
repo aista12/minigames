@@ -19,7 +19,7 @@ const homeLink = pageHref('home', import.meta.env.BASE_URL);
 const libraryLink = pageHref('library', import.meta.env.BASE_URL);
 
 export type InteractiveHeader = HTMLElement & {
-    setAuthMode: (mode: AuthMode | undefined) => void;
+    setAuthMode: (mode: AuthMode | undefined, isImmediate?: boolean) => void;
     setUserProfile: (profile: AppSessionProfile | undefined) => void;
 };
 
@@ -832,11 +832,11 @@ export const createHeader = (
         });
     };
 
-    const closeAuthDialog = (): void => {
+    const closeAuthDialog = (isImmediate = false): void => {
         if (
             isAuthPending ||
             !dialog.open ||
-            dialog.classList.contains('auth-dialog--closing')
+            (!isImmediate && dialog.classList.contains('auth-dialog--closing'))
         ) {
             return;
         }
@@ -849,21 +849,30 @@ export const createHeader = (
             globalThis.clearTimeout(switchTimer);
             switchTimer = undefined;
         }
-        dialog.classList.add('auth-dialog--closing');
-        closeTimer = globalThis.setTimeout(() => {
+        if (closeTimer !== undefined) {
+            globalThis.clearTimeout(closeTimer);
+            closeTimer = undefined;
+        }
+        const finishClosing = (): void => {
             dialog.close();
             dialog.classList.remove('auth-dialog--closing');
             document.body.classList.remove('auth-dialog-open');
             closeTimer = undefined;
-        }, 180);
+        };
+        if (isImmediate) {
+            finishClosing();
+            return;
+        }
+        dialog.classList.add('auth-dialog--closing');
+        closeTimer = globalThis.setTimeout(finishClosing, 180);
     };
 
-    header.setAuthMode = (mode): void => {
+    header.setAuthMode = (mode, isImmediate): void => {
         if (mode) {
             openAuthDialog(mode);
             return;
         }
-        closeAuthDialog();
+        closeAuthDialog(isImmediate);
     };
 
     const requestAuthChange = (mode: AuthMode | undefined): void => {

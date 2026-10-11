@@ -53,7 +53,7 @@ const parseSession = (value: string): AppSession | undefined => {
     }
     if (
         typeof authenticatedAt !== 'number' ||
-        !Number.isFinite(authenticatedAt) ||
+        !Number.isSafeInteger(authenticatedAt) ||
         authenticatedAt <= 0 ||
         authenticatedAt > Date.now() ||
         (avatarUrl !== undefined && typeof avatarUrl !== 'string')

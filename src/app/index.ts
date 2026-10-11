@@ -82,7 +82,22 @@ const appSession = createAppSession(
     },
 );
 const sessionInitialization = appSession.restore();
-const gameDetailsDialog = createGameDetailsDialog(snackbar);
+const protectedAuthState = { shouldRestoreGame: false };
+const gameDetailsDialog = createGameDetailsDialog(snackbar, () => {
+    if (appSession.getValidSession()) {
+        return true;
+    }
+
+    protectedAuthState.shouldRestoreGame = routerState.route.game !== undefined;
+    navigate({
+        ...routerState.route,
+        auth: 'login',
+        game: protectedAuthState.shouldRestoreGame
+            ? routerState.route.game
+            : undefined,
+    });
+    return false;
+});
 const libraryPagination: InteractiveLibraryPagination =
     createLibraryPagination();
 const routerState: {
@@ -102,6 +117,9 @@ const routerState: {
     activeGame: undefined,
     activeAuth: undefined,
 };
+protectedAuthState.shouldRestoreGame = Boolean(
+    routerState.route.game && routerState.route.auth,
+);
 
 const navigate = (next: AppRoute, isReplace = false): void => {
     appSession.getValidSession();
@@ -144,6 +162,7 @@ const libraryCardsSection: InteractiveLibraryCardsSection =
             if (page === routerState.route.pageNumber) {
                 return;
             }
+            appSession.getValidSession();
             routerState.route = {
                 ...routerState.route,
                 pageNumber: page,
@@ -257,38 +276,66 @@ function applyRoute(next: AppRoute): void {
         }
     }
 
-    if (routerState.activeGame !== next.game) {
-        routerState.activeGame = next.game;
-        if (next.game) {
-            gameDetailsDialog.open(next.game);
+    const gameToShow = next.auth ? undefined : next.game;
+    if (!gameToShow && routerState.activeGame) {
+        if (next.auth) {
+            gameDetailsDialog.closeImmediately();
         } else {
             gameDetailsDialog.close();
         }
+        routerState.activeGame = undefined;
     }
 
     if (routerState.activeAuth === next.auth) {
+        if (gameToShow && routerState.activeGame !== gameToShow) {
+            routerState.activeGame = gameToShow;
+            gameDetailsDialog.open(gameToShow);
+        }
+        if (!next.auth && !next.game) {
+            protectedAuthState.shouldRestoreGame = false;
+        }
         return;
     }
     routerState.activeAuth = next.auth;
-    headerState.current?.setAuthMode(next.auth);
+    headerState.current?.setAuthMode(
+        next.auth,
+        !next.auth && gameToShow !== undefined,
+    );
+    if (gameToShow && routerState.activeGame !== gameToShow) {
+        routerState.activeGame = gameToShow;
+        gameDetailsDialog.open(gameToShow);
+    }
+    if (!next.auth && !next.game) {
+        protectedAuthState.shouldRestoreGame = false;
+    }
 }
 
 const header: InteractiveHeader = createHeader(
     navigatePage,
     (mode) => {
+        const game = protectedAuthState.shouldRestoreGame
+            ? routerState.route.game
+            : undefined;
+        if (!mode) {
+            protectedAuthState.shouldRestoreGame = false;
+        }
         navigate({
             ...routerState.route,
             auth: mode,
-            game: undefined,
+            game,
         });
     },
     async (profile) => {
+        const game = protectedAuthState.shouldRestoreGame
+            ? routerState.route.game
+            : undefined;
+        protectedAuthState.shouldRestoreGame = false;
         appSession.establish(profile);
         headerState.current?.setUserProfile(profile);
         navigate({
             ...routerState.route,
             auth: undefined,
-            game: undefined,
+            game,
         });
     },
     snackbar,
