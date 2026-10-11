@@ -81,7 +81,12 @@ const appSession = createAppSession(
         );
     },
 );
-const sessionInitialization = appSession.restore();
+const sessionInitializationState = { isInitialized: false };
+const sessionInitialization = (async () => {
+    const session = await appSession.restore();
+    sessionInitializationState.isInitialized = true;
+    return session;
+})();
 const protectedAuthState = { shouldRestoreGame: false };
 const gameDetailsDialog = createGameDetailsDialog(snackbar, () => {
     if (appSession.getValidSession()) {
@@ -121,8 +126,38 @@ protectedAuthState.shouldRestoreGame = Boolean(
     routerState.route.game && routerState.route.auth,
 );
 
+const guardAuthenticatedAuthRoute = (next: AppRoute): AppRoute => {
+    if (!next.auth || !appSession.getValidSession()) {
+        return next;
+    }
+
+    const currentUrl = new URL(globalThis.location.href);
+    currentUrl.searchParams.delete('auth');
+    globalThis.history.replaceState(
+        undefined,
+        '',
+        `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+    );
+    snackbar.show('You are already authenticated.', 'success');
+    return readRoute(
+        currentUrl.pathname,
+        currentUrl.search,
+        import.meta.env.BASE_URL,
+    );
+};
+
 const navigate = (next: AppRoute, isReplace = false): void => {
-    appSession.getValidSession();
+    if (!sessionInitializationState.isInitialized && next.auth) {
+        void sessionInitialization.then(() => navigate(next, isReplace));
+        return;
+    }
+
+    const guardedRoute = guardAuthenticatedAuthRoute(next);
+    if (guardedRoute !== next) {
+        applyRoute(guardedRoute);
+        return;
+    }
+
     const url = routeUrl(next, import.meta.env.BASE_URL);
     if (isReplace) {
         globalThis.history.replaceState(undefined, '', url);
@@ -351,10 +386,6 @@ const header: InteractiveHeader = createHeader(
 );
 headerState.current = header;
 
-void sessionInitialization.then((session) => {
-    header.setUserProfile(session);
-});
-
 app.append(
     header,
     main,
@@ -364,15 +395,20 @@ app.append(
 );
 document.body.append(app);
 
-globalThis.addEventListener('popstate', () => {
-    appSession.getValidSession();
-    applyRoute(
-        readRoute(
-            globalThis.location.pathname,
-            globalThis.location.search,
-            import.meta.env.BASE_URL,
-        ),
+const applyLocationRoute = (): void => {
+    const route = readRoute(
+        globalThis.location.pathname,
+        globalThis.location.search,
+        import.meta.env.BASE_URL,
     );
+    applyRoute(guardAuthenticatedAuthRoute(route));
+};
+
+globalThis.addEventListener('popstate', () => {
+    void sessionInitialization.then(applyLocationRoute);
 });
 
-applyRoute(routerState.route);
+void sessionInitialization.then((session) => {
+    header.setUserProfile(session);
+    applyLocationRoute();
+});
