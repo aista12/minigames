@@ -18,5 +18,11 @@
         "prepare": "husky",
         "lint": "eslint src --max-warnings=0",
         "format": "prettier --write ."
+    },
+    "dependencies": {
+        "firebase": "^13.0.0"
+    },
+    "overrides": {
+        "@grpc/grpc-js": "^1.13.6"
     }
 }

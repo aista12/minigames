@@ -11,6 +11,19 @@ npm ci
 npm run dev
 ```
 
+## Firebase Authentication setup
+
+Create a Firebase project and register a web app in the Firebase Console.
+In **Authentication → Sign-in method**, enable **Email/Password**. Copy the
+web app configuration values into `.env.local` (start from `.env.example`);
+Vite exposes these Firebase client configuration values in the frontend bundle,
+so they are not authentication credentials. Do not put passwords or Firebase
+user tokens in this file.
+
+The Firebase SDK is initialized by `src/shared/firebase.ts` when imported.
+Missing configuration is reported explicitly; Firebase project creation and
+provider enablement must be completed in the Firebase Console.
+
 ## gitHub pages deployment
 
 The `story-2` branch is built and deployed to GitHub Pages by the
