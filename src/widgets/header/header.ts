@@ -10,6 +10,138 @@ export type InteractiveHeader = HTMLElement & {
     setAuthMode: (mode: AuthMode | undefined) => void;
 };
 
+type AuthField = 'email' | 'username' | 'password' | 'confirmPassword';
+const authFields = new Set<string>([
+    'email',
+    'username',
+    'password',
+    'confirmPassword',
+]);
+
+const isAuthField = (field: string | undefined): field is AuthField =>
+    authFields.has(field ?? '');
+
+const getAuthFieldError = (
+    field: AuthField,
+    value: string,
+    password: string,
+    isSignUp: boolean,
+): string => {
+    if (field === 'email') {
+        if (!value.trim()) {
+            return 'Email is required.';
+        }
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+            ? ''
+            : 'Enter a valid email address.';
+    }
+
+    if (field === 'username') {
+        if (!value) {
+            return 'Username is required.';
+        }
+        if (value.length < 2 || value.length > 30) {
+            return 'Username must be 2–30 characters long.';
+        }
+        return /^[A-Z][A-Za-z0-9]+$/.test(value)
+            ? ''
+            : 'Start with an uppercase English letter; use English letters and digits only.';
+    }
+
+    if (field === 'password') {
+        if (!value) {
+            return 'Password is required.';
+        }
+        if (value.length < 6) {
+            return 'Password must be at least 6 characters long.';
+        }
+        return isSignUp &&
+            (!/[A-Z]/.test(value) ||
+                !/\d/.test(value) ||
+                !/[^A-Za-z0-9]/.test(value))
+            ? 'Use an uppercase letter, a number, and a special character.'
+            : '';
+    }
+
+    if (!value) {
+        return 'Please confirm your password.';
+    }
+    return value === password ? '' : 'Passwords do not match.';
+};
+
+const isAuthFieldValid = (
+    input: HTMLInputElement,
+    shouldShowError: boolean,
+): boolean => {
+    const field = input.dataset.authField;
+    const form = input.closest<HTMLFormElement>('.auth-dialog__content');
+    const errorElement = input.parentElement?.querySelector<HTMLElement>(
+        '.auth-dialog__error',
+    );
+    if (!form || !errorElement || !isAuthField(field)) {
+        return false;
+    }
+
+    const password =
+        form.querySelector<HTMLInputElement>('[data-auth-field="password"]')
+            ?.value ?? '';
+    const error = getAuthFieldError(
+        field,
+        input.value,
+        password,
+        form.classList.contains('auth-dialog__content--signup'),
+    );
+    input.setAttribute(
+        'aria-invalid',
+        String(shouldShowError && Boolean(error)),
+    );
+    errorElement.textContent = shouldShowError ? error : '';
+    return !error;
+};
+
+const updateSubmitState = (form: HTMLFormElement): void => {
+    const submitButton = form.querySelector<HTMLButtonElement>(
+        '.auth-dialog__submit',
+    );
+    if (!submitButton) {
+        return;
+    }
+    const inputs = [
+        ...form.querySelectorAll<HTMLInputElement>('[data-auth-field]'),
+    ];
+    submitButton.disabled = inputs.some(
+        (input) => !isAuthFieldValid(input, input.dataset.touched === 'true'),
+    );
+};
+
+const handleAuthFieldChange = (event: Event): void => {
+    const input =
+        event.target instanceof HTMLInputElement ? event.target : undefined;
+    if (!input?.dataset.authField) {
+        return;
+    }
+
+    input.dataset.touched = 'true';
+    const form = input.closest<HTMLFormElement>('.auth-dialog__content');
+    if (!form) {
+        return;
+    }
+
+    isAuthFieldValid(input, true);
+    if (
+        input.dataset.authField === 'password' &&
+        form.classList.contains('auth-dialog__content--signup')
+    ) {
+        const confirmPassword = form.querySelector<HTMLInputElement>(
+            '[data-auth-field="confirmPassword"]',
+        );
+        if (confirmPassword?.dataset.touched === 'true') {
+            isAuthFieldValid(confirmPassword, true);
+        }
+    }
+    updateSubmitState(form);
+};
+
 const createLogo = (): HTMLAnchorElement => {
     const logo = document.createElement('a');
     logo.className = 'site-logo';
@@ -58,33 +190,43 @@ const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
     const fields = isSignUp
         ? `
             <label class="auth-dialog__field">
-                <span>Display name</span>
-                <input type="text" autocomplete="name" placeholder="Display name" />
+                <span>Username</span>
+                <input type="text" autocomplete="username" placeholder="Username" data-auth-field="username" aria-describedby="auth-username-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-username-error" aria-live="polite"></span>
             </label>
             <label class="auth-dialog__field">
                 <span>Email</span>
-                <input type="email" autocomplete="email" placeholder="Email" />
+                <input type="email" autocomplete="email" placeholder="Email" data-auth-field="email" aria-describedby="auth-email-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-email-error" aria-live="polite"></span>
             </label>
             <label class="auth-dialog__field">
                 <span>Password</span>
-                <input type="password" autocomplete="new-password" placeholder="Password" />
+                <input type="password" autocomplete="new-password" placeholder="Password" data-auth-field="password" aria-describedby="auth-password-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-password-error" aria-live="polite"></span>
+            </label>
+            <label class="auth-dialog__field">
+                <span>Confirm password</span>
+                <input type="password" autocomplete="new-password" placeholder="Confirm password" data-auth-field="confirmPassword" aria-describedby="auth-confirm-password-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-confirm-password-error" aria-live="polite"></span>
             </label>
         `
         : `
             <label class="auth-dialog__field">
-                <span>Email or username</span>
-                <input type="email" autocomplete="email" placeholder="Email or username" />
+                <span>Email</span>
+                <input type="email" autocomplete="email" placeholder="Email" data-auth-field="email" aria-describedby="auth-email-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-email-error" aria-live="polite"></span>
             </label>
             <label class="auth-dialog__field">
                 <span>Password</span>
-                <input type="password" autocomplete="current-password" placeholder="Password" />
+                <input type="password" autocomplete="current-password" placeholder="Password" data-auth-field="password" aria-describedby="auth-password-error" aria-invalid="false" />
+                <span class="auth-dialog__error" id="auth-password-error" aria-live="polite"></span>
             </label>
         `;
     const footer = isSignUp
         ? '<p class="auth-dialog__signup">Already have an account? <a href="#home" data-auth-mode="login">Login</a></p>'
         : '<p class="auth-dialog__signup">New to MiniGames? <a href="#home" data-auth-mode="signup">Register</a></p>';
     dialog.innerHTML = `
-        <form class="auth-dialog__content auth-dialog__content--${mode}">
+        <form class="auth-dialog__content auth-dialog__content--${mode}" novalidate>
             <button class="auth-dialog__close" type="button" aria-label="Close ${isSignUp ? 'sign up' : 'sign in'} dialog">×</button>
             <div class="auth-dialog__switcher" role="tablist" aria-label="Authentication mode">
                 <button class="auth-dialog__tab${isSignUp ? '' : ' auth-dialog__tab--active'}" type="button" role="tab" aria-selected="${!isSignUp}" data-auth-mode="login">Login</button>
@@ -94,7 +236,7 @@ const createAuthDialog = (mode: AuthMode = 'login'): HTMLDialogElement => {
             <h2 id="auth-dialog-title">${isSignUp ? 'Create your account' : 'Sign in'}</h2>
             <p class="auth-dialog__intro">${isSignUp ? 'Join the fun and keep your games in one place.' : 'Welcome back. Pick up where you left off.'}</p>
             ${fields}
-            <button class="auth-dialog__submit" type="button">${isSignUp ? 'Sign up' : 'Sign in'}</button>
+            <button class="auth-dialog__submit" type="submit" disabled>${isSignUp ? 'Sign up' : 'Sign in'}</button>
             ${isSignUp ? '' : '<div class="auth-dialog__options"><label><input type="checkbox" /> <span>Remember me</span></label><a href="#home">Need help?</a></div>'}
             ${footer}
         </form>
@@ -261,6 +403,25 @@ export const createHeader = (
     const dialog = createAuthDialog();
     let closeTimer: number | undefined;
     let switchTimer: number | undefined;
+
+    dialog.addEventListener('input', handleAuthFieldChange);
+    dialog.addEventListener('change', handleAuthFieldChange);
+    dialog.addEventListener('focusout', handleAuthFieldChange);
+    dialog.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const form =
+            event.target instanceof HTMLFormElement ? event.target : undefined;
+        if (!form) {
+            return;
+        }
+        for (const input of form.querySelectorAll<HTMLInputElement>(
+            '[data-auth-field]',
+        )) {
+            input.dataset.touched = 'true';
+            isAuthFieldValid(input, true);
+        }
+        updateSubmitState(form);
+    });
 
     const setAuthMode = (mode: AuthMode, isAnimated: boolean): void => {
         if (switchTimer !== undefined) {

@@ -396,6 +396,20 @@
     box-shadow: 0 0 0 2px rgb(255 208 43 / 25%);
 }
 
+.auth-dialog__field input[aria-invalid='true'] {
+    border-color: tokens.$color-error;
+}
+
+.auth-dialog__error {
+    color: tokens.$color-error;
+    font-size: tokens.$font-size-xs;
+    font-weight: tokens.$font-weight-regular;
+}
+
+.auth-dialog__error:empty {
+    display: none;
+}
+
 .auth-dialog__submit {
     width: 100%;
     min-height: 48px;
@@ -415,6 +429,15 @@
 
 .auth-dialog__submit:hover {
     background-color: tokens.$color-primary-hover;
+}
+
+.auth-dialog__submit:disabled {
+    background-color: tokens.$color-footer-text;
+    cursor: not-allowed;
+}
+
+.auth-dialog__submit:disabled:hover {
+    background-color: tokens.$color-footer-text;
 }
 
 .auth-dialog__submit:active {
