@@ -360,6 +360,13 @@
     line-height: 1.5;
 }
 
+.auth-dialog__request-status {
+    min-height: tokens.$size-4;
+    margin-top: tokens.$size-3 !important;
+    color: tokens.$color-footer-text;
+    font-size: tokens.$font-size-xs;
+}
+
 .auth-dialog__field {
     display: flex;
     flex-direction: column;
@@ -438,6 +445,13 @@
 
 .auth-dialog__submit:disabled:hover {
     background-color: tokens.$color-footer-text;
+}
+
+.auth-dialog button:disabled,
+.site-header__actions [data-auth-control]:disabled,
+.mobile-menu__actions [data-auth-control]:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
 }
 
 .auth-dialog__submit:active {

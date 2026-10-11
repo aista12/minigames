@@ -24,6 +24,10 @@ The Firebase SDK is initialized by `src/shared/firebase.ts` when imported.
 Missing configuration is reported explicitly; Firebase project creation and
 provider enablement must be completed in the Firebase Console.
 
+The client app session is stored under
+`minigames:aista12:app-session` in local storage. It contains only the display
+name, email, authentication timestamp, and an avatar URL when available.
+
 ## gitHub pages deployment
 
 The `story-2` branch is built and deployed to GitHub Pages by the

@@ -19,6 +19,7 @@ import {
 import { createGameDetailsDialog } from '../widgets/game-details/game-details';
 import { createHeader, type InteractiveHeader } from '../widgets/header/header';
 import { createSnackbar } from '../shared/snackbar';
+import { createAppSession } from '../shared/app-session';
 import { createNotFoundPage } from '../pages/not-found/not-found';
 import {
     defaultRoute,
@@ -62,6 +63,21 @@ const app = document.createElement('div');
 app.id = 'app';
 const main = document.createElement('main');
 const snackbar = createSnackbar();
+const appSession = createAppSession(
+    () => {
+        snackbar.show(
+            'Your session expired. You are now in guest mode.',
+            'error',
+        );
+    },
+    () => {
+        snackbar.show(
+            'Could not sign out of Firebase. Please reload the app.',
+            'error',
+        );
+    },
+);
+const sessionInitialization = appSession.restore();
 const gameDetailsDialog = createGameDetailsDialog(snackbar);
 const libraryPagination: InteractiveLibraryPagination =
     createLibraryPagination();
@@ -84,6 +100,7 @@ const routerState: {
 };
 
 const navigate = (next: AppRoute, isReplace = false): void => {
+    appSession.getValidSession();
     const url = routeUrl(next, import.meta.env.BASE_URL);
     if (isReplace) {
         globalThis.history.replaceState(undefined, '', url);
@@ -252,13 +269,26 @@ function applyRoute(next: AppRoute): void {
     header.setAuthMode(next.auth);
 }
 
-const header: InteractiveHeader = createHeader(navigatePage, (mode) => {
-    navigate({
-        ...routerState.route,
-        auth: mode,
-        game: undefined,
-    });
-});
+const header: InteractiveHeader = createHeader(
+    navigatePage,
+    (mode) => {
+        navigate({
+            ...routerState.route,
+            auth: mode,
+            game: undefined,
+        });
+    },
+    async (profile) => {
+        appSession.establish(profile);
+        navigate({
+            ...routerState.route,
+            auth: undefined,
+            game: undefined,
+        });
+    },
+    snackbar,
+    sessionInitialization,
+);
 
 app.append(
     header,
@@ -270,6 +300,7 @@ app.append(
 document.body.append(app);
 
 globalThis.addEventListener('popstate', () => {
+    appSession.getValidSession();
     applyRoute(
         readRoute(
             globalThis.location.pathname,
