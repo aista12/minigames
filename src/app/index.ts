@@ -340,6 +340,14 @@ const header: InteractiveHeader = createHeader(
     },
     snackbar,
     sessionInitialization,
+    () => {
+        header.setUserProfile(undefined);
+        if (routerState.route.game && !routerState.route.auth) {
+            gameDetailsDialog.open(routerState.route.game);
+        }
+        snackbar.show('You have been logged out.', 'success');
+        void appSession.logout();
+    },
 );
 headerState.current = header;
 

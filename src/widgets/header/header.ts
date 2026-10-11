@@ -513,6 +513,7 @@ export const createHeader = (
     onAuthenticated?: (profile: AppSessionProfile) => Promise<void>,
     snackbar?: Snackbar,
     authReady: Promise<unknown> = Promise.resolve(),
+    onLogout?: () => void,
 ): InteractiveHeader => {
     const header = document.createElement('header') as InteractiveHeader;
     header.className = 'site-header';
@@ -984,6 +985,21 @@ export const createHeader = (
         '.mobile-menu__guest-actions',
     );
 
+    const createLogoutButton = (className: string): HTMLButtonElement => {
+        const button = document.createElement('button');
+        button.className = className;
+        button.type = 'button';
+        button.textContent = 'Log Out';
+        button.setAttribute('aria-label', 'Log out');
+        button.addEventListener('click', () => onLogout?.());
+        return button;
+    };
+
+    const desktopLogoutButton = createLogoutButton(
+        'site-header__logout-button',
+    );
+    const mobileLogoutButton = createLogoutButton('mobile-menu__logout-button');
+
     header.setUserProfile = (profile): void => {
         const isAuthenticated = profile !== undefined;
         profileView.hidden = !isAuthenticated;
@@ -991,6 +1007,7 @@ export const createHeader = (
         if (isAuthenticated) {
             profileView.replaceChildren(
                 createProfileView(profile, 'site-header__profile'),
+                desktopLogoutButton,
             );
         } else {
             profileView.replaceChildren();
@@ -1004,7 +1021,10 @@ export const createHeader = (
         mobileGuestActions.hidden = isAuthenticated;
         mobileProfileView.replaceChildren(
             ...(profile
-                ? [createProfileView(profile, 'mobile-menu__profile')]
+                ? [
+                      createProfileView(profile, 'mobile-menu__profile'),
+                      mobileLogoutButton,
+                  ]
                 : []),
         );
     };

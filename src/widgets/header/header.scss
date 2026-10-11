@@ -90,6 +90,32 @@
     font-weight: tokens.$font-weight-semibold;
 }
 
+.site-header__profile-slot,
+.mobile-menu__profile-slot {
+    display: flex;
+    align-items: center;
+    gap: tokens.$size-3;
+}
+
+.site-header__profile-slot[hidden],
+.mobile-menu__profile-slot[hidden] {
+    display: none;
+}
+
+.site-header__logout-button,
+.mobile-menu__logout-button {
+    min-height: tokens.$button-height-md;
+    padding: tokens.$size-2 tokens.$size-3;
+    border: tokens.$border-width-strong solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background-color: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: tokens.$font-size-xs;
+    font-weight: tokens.$font-weight-bold;
+}
+
 .site-header__profile__avatar,
 .mobile-menu__profile__avatar {
     position: relative;
@@ -283,6 +309,7 @@
 .mobile-menu__profile {
     display: flex;
     align-items: center;
+    min-width: 0;
     gap: tokens.$size-3;
     color: tokens.$color-white;
     font-size: tokens.$font-size-md;
