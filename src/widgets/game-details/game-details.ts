@@ -1,5 +1,6 @@
 import './game-details.scss';
 import { API_BASE_URL } from '../../shared/api';
+import type { AppSession } from '../../shared/app-session';
 import type { Snackbar } from '../../shared/snackbar';
 
 type GameDetails = {
@@ -190,7 +191,11 @@ const createState = (
 const createInfoSection = (
     details: GameDetails,
     isFavorite: boolean,
-    canToggleFavorite: () => boolean,
+    onFavoriteRequested: (
+        gameSlug: string,
+        button: HTMLButtonElement,
+        likes: HTMLElement,
+    ) => void,
 ): HTMLElement => {
     const section = document.createElement('section');
     section.className = 'game-details__info';
@@ -212,10 +217,8 @@ const createInfoSection = (
     const rating = document.createElement('span');
     rating.textContent = `★ ${details.rating.toFixed(1)}`;
     const likes = document.createElement('span');
-    likes.textContent = `♡ ${new Intl.NumberFormat('en', {
-        notation: 'compact',
-        maximumFractionDigits: 1,
-    }).format(details.likesCount)}`;
+    likes.className = 'game-details__likes-count';
+    likes.textContent = `♡ ${formatNumber.format(details.likesCount)}`;
     summary.append(rating, likes);
 
     const specs = document.createElement('ul');
@@ -255,18 +258,7 @@ const createInfoSection = (
         ? '♥ <span>Added to Favorites</span>'
         : '♡ <span>Add to Favorites</span>';
     favoriteButton.addEventListener('click', () => {
-        if (!canToggleFavorite()) {
-            return;
-        }
-        const isActive = favoriteButton.getAttribute('aria-pressed') === 'true';
-        favoriteButton.setAttribute('aria-pressed', String(!isActive));
-        favoriteButton.classList.toggle(
-            'game-details__favorite--active',
-            !isActive,
-        );
-        favoriteButton.innerHTML = isActive
-            ? '♡ <span>Add to Favorites</span>'
-            : '♥ <span>Added to Favorites</span>';
+        onFavoriteRequested(details.slug, favoriteButton, likes);
     });
     actions.append(play, favoriteButton);
     section.append(eyebrow, title, description, summary, specs, actions);
@@ -438,7 +430,11 @@ const renderDetails = (
     heroImage: HTMLImageElement,
     details: GameDetails,
     dialog: HTMLDialogElement,
-    canToggleFavorite: () => boolean,
+    onFavoriteRequested: (
+        gameSlug: string,
+        button: HTMLButtonElement,
+        likes: HTMLElement,
+    ) => void,
 ): void => {
     const localImage =
         localHeroImages[`../../pages/library/assets/${details.slug}-hero.jpg`];
@@ -469,7 +465,7 @@ const renderDetails = (
         createInfoSection(
             details,
             details.isLikedByCurrentUser,
-            canToggleFavorite,
+            onFavoriteRequested,
         ),
         createRecordsSection(details.topRecords),
         createCommentsSection(),
@@ -478,7 +474,8 @@ const renderDetails = (
 
 export const createGameDetailsDialog = (
     snackbar: Snackbar,
-    canToggleFavorite: () => boolean = () => true,
+    getActiveSession: () => AppSession | undefined,
+    onGuestFavorite: () => void = () => {},
 ): GameDetailsDialog => {
     const dialog = document.createElement('dialog');
     dialog.className = 'game-details';
@@ -502,6 +499,94 @@ export const createGameDetailsDialog = (
     let commentsController: AbortController | undefined;
     let currentRequest: (() => void) | undefined;
     let onUserClose: (() => void) | undefined;
+    let isFavoriteRequestPending = false;
+
+    const toggleFavorite = (
+        gameSlug: string,
+        button: HTMLButtonElement,
+        likes: HTMLElement,
+    ): void => {
+        const session = getActiveSession();
+        if (!session) {
+            snackbar.show('Sign in to add games to your favorites.', 'error');
+            onGuestFavorite();
+            return;
+        }
+        if (isFavoriteRequestPending) {
+            return;
+        }
+
+        const isFavorite = button.getAttribute('aria-pressed') === 'true';
+        isFavoriteRequestPending = true;
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        button.innerHTML = '<span>Updating favorites…</span>';
+
+        void (async () => {
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/games/${encodeURIComponent(gameSlug)}/favorite`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ userEmail: session.email }),
+                    },
+                );
+                if (!response.ok) {
+                    throw new Error(
+                        `Favorite request failed with status ${response.status}.`,
+                    );
+                }
+
+                const payload: unknown = await response.json();
+                if (
+                    !isRecord(payload) ||
+                    !isRecord(payload.data) ||
+                    typeof payload.data.isFavorited !== 'boolean' ||
+                    typeof payload.data.likesCount !== 'number' ||
+                    !Number.isSafeInteger(payload.data.likesCount) ||
+                    payload.data.likesCount < 0
+                ) {
+                    throw new Error(
+                        'The server returned an invalid favorite response.',
+                    );
+                }
+
+                const isFavorited = payload.data.isFavorited;
+                button.setAttribute('aria-pressed', String(isFavorited));
+                button.classList.toggle(
+                    'game-details__favorite--active',
+                    isFavorited,
+                );
+                button.innerHTML = isFavorited
+                    ? '♥ <span>Added to Favorites</span>'
+                    : '♡ <span>Add to Favorites</span>';
+                likes.textContent = `♡ ${formatNumber.format(payload.data.likesCount)}`;
+                snackbar.show(
+                    isFavorited
+                        ? 'Game added to favorites.'
+                        : 'Game removed from favorites.',
+                    'success',
+                );
+            } catch (error) {
+                button.innerHTML = isFavorite
+                    ? '♥ <span>Added to Favorites</span>'
+                    : '♡ <span>Add to Favorites</span>';
+                snackbar.show(
+                    error instanceof Error
+                        ? `${error.message} Please check the current favorite state before retrying.`
+                        : 'Favorite status could not be confirmed. Please check it before retrying.',
+                    'error',
+                );
+            } finally {
+                isFavoriteRequestPending = false;
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            }
+        })();
+    };
 
     const closeDialog = (isUserInitiated = false): void => {
         if (isUserInitiated && onUserClose) {
@@ -611,7 +696,7 @@ export const createGameDetailsDialog = (
                 heroImage,
                 payload.data,
                 dialog,
-                canToggleFavorite,
+                toggleFavorite,
             );
             const commentsSection = body.querySelector<HTMLElement>(
                 '.game-details__comments',

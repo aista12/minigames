@@ -236,6 +236,11 @@
     color: tokens.$color-text;
 }
 
+.game-details__favorite:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
 .game-details__favorite--active {
     background-color: tokens.$color-primary;
 }
